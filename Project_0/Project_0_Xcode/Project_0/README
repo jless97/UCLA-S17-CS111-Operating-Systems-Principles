@@ -1,0 +1,41 @@
+Identification:
+    Name: Jason Less
+    Email: jaless1997@gmail.com
+    ID: 404-640-158
+
+Description of included files:
+(1) lab0.c: C source module containing the Project 0 Program (that copies STDIN to STDOUT with parsing options)
+(2) Makefile: for building the program and tarball
+(3) backtrace.png: showing segfault and associated stack-trace
+(4) breakpoint.png: showing breakpoint and variable inspection
+
+Smoke-test Cases in the check target:
+
+
+Features:
+
+
+Testing Methodology:
+
+
+Research and Citations:
+- The TA Discussion slides and the man pages of used functions were especially useful
+- Below are a list of other websites that I used for research on required functions and syntax:
+    https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html#Getopt-Long-Option-Example
+        - getopt_long guidelines and example
+    http://www.thegeekstuff.com/2012/03/catch-signals-sample-c-code/
+        - signal handler simple example
+    https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html#Basic-Signal-Handling
+        - Basic signal handling guidelines
+    https://linuxprograms.wordpress.com/2012/06/22/c-getopt-example/
+        - print_usage format example
+    http://courses.cms.caltech.edu/cs11/material/general/usage.html
+        - print_usage => what to include
+    http://www.cim.mcgill.ca/~franco/OpSys-304-427/lecture-notes/node22.html#SECTION00061400000000000000
+        - Read/write syntax refresher
+    https://www.gnu.org/software/libc/manual/html_node/Using-Getopt.html
+        - For definitions on optarg
+    https://www.gnu.org/prep/standards/html_node/Standard-Targets.html
+        - Makefile guidelines
+    https://www.gnu.org/software/make/manual/html_node/Complex-Makefile.html
+        - Makefile guidelines and example

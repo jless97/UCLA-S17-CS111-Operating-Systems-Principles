@@ -1,0 +1,47 @@
+Identification:
+    NAME: Jason Less
+    EMAIL: jaless1997@gmail.com
+    ID: 404-640-158
+
+Description of included files (Features):
+(1) lab1a.c: C source module that consists of the main functionality of this
+    project. This source module allows for basic terminal I/O in non-
+    canonical, no echo input mode. In addition, the source module allows
+    for a command-line option to be included (i.e. --shell), which allows
+    for the creation of processes for polled I/O with IPC. 
+(2) Makefile: The Makefile for this lab is very standard in that it only
+    contains a default build target, as well as clean and dist target. The
+    dist target is used to create the tarball, while the default option is
+    used to build the program. Lastly, the clean target is used to remove
+    the files spawned with the make command.
+
+Testing Methodology:
+Unlike for Project 0, no smoke tests were used to test the program in the 
+Makefile (as this wasn't required). However, I tested my program by using
+incremental programming, and making sure that each requirement of the spec was
+functioning correctly as I continued to finish the project. In addition, I
+printed out code-specific error messages after each system call, so that I
+knew exactly where the error was coming from.
+
+Citations and Research:
+- The TA discussion section/slides, Piazza responses, and man pages for the
+  used APIs were especially useful for this project
+- In addition, the GNU libc Manual was very helpful in researching certain
+  features of the project, as well as descriptions of the required APIs
+- Below are a list of other websites that I used for research on required 
+  functions and syntax:
+  https://www.gnu.org/software/libc/manual/html_node
+  - This was the main resource that I used to complete this project as I
+    used it to learn about the different pieces of the project (e.g. 
+    Noncanonical Input, Terminal Modes, etc.)
+  http://web.cs.ucla.edu/classes/spring17/cs111/projects/fd_juggling.html
+  - For a brief reminder on I/O Redirection
+  https://beej.us/guide/bgnet/output/html/multipage/pollman.html
+  - Used as another guide to learning about the poll I/O process, with an
+    example
+  http://www.asciitable.com/
+  - Used to get the names and corresponding number representations of values
+    such as carriage return, newline, end of text, and end of transmission
+  http://www.comptechdoc.org/os/linux/programming/linux_pgsignals.html
+  - Used to get the signal names and numbers of required Linux signals for
+    this project

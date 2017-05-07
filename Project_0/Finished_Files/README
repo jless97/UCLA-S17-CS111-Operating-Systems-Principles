@@ -1,0 +1,86 @@
+Identification:
+    NAME: Jason Less
+    EMAIL: jaless1997@gmail.com
+    ID: 404-640-158
+
+Description of included files (Features):
+(1) lab0.c: C source module containing the Project 0 Program (that copies
+    STDIN to STDOUT with parsing options). This program has the simple
+    function of copying STDIN to STDOUT, but there are several (optional)
+    options that can be provided. The options are recognized by my program
+    via parsing with the getopt_long function. The options that can be
+    provided are --input, --output, --segfault, and --catch.
+(2) Makefile: for building the program and tarball. This file contains
+    several pieces to it. It consists of the default option to make the
+    lab0 executable, but also contains check, clean, and dist targets as
+    well. The check target is used for implementing my smoke-tests, which
+    check the general behavior and correctness of my program. It will print
+    output error (or success) messages, and indicate whether the test cases
+    were all passed, or if one or more test cases was failed. In addition,
+    the Makefile consists of the clean target, which removes certain files
+    when using make, make check, and make dist. Moreover, the Makefile has
+    a dist target, which is used to generate the tarball for this project,
+    which is specific to my student ID. Lastly, the Makefile contains
+    various test cases (i.e. invalid_arg_test, input_option_test, etc.) which
+    are implemented when make check is executed to do a sanity check of the
+    my program.
+(3) backtrace.png: showing segfault and associated stack-trace. This is an
+    image that contains the commands that I ran in GDB to observe my program
+    when the --segfault option is given. It observes that the segfault
+    occurred, and that the program received the signal, but it also gets a
+    backtrace of the stack due to the segmentation fault.
+(4) breakpoint.png: showing breakpoint and variable inspection. This is an
+    image that contains the commands that I ran in GDB to observe my program
+    when the --segfault option is given. Instead of getting the backtrace of
+    the stack due to the segfault, it sets a breakpoint at the point where
+    the signal occurred, and inspects the pointer that accessed bad memory.
+
+Testing: Smoke-test Cases in the check target:
+(a) Invalid argument: Testing to make sure that my program deals with a user
+    providing an invalid argument on the command line. In addition, this case
+    is checking to make sure that it exits with the correct value (i.e. 1)
+(b) Default case: Testing to make sure that the program correctly does its
+    general purpose (i.e. copying STDIN to STDOUT). This test has some text
+    in an input file and then copies it to another file. It then uses the cmp
+    command to make sure that the copying from input to output was successful
+    and that they have the same content.
+(c) Input option: Testing to make sure that my program correctly handles a
+    situation when the input option is provided. There are two tests here:
+    one to make sure that it executes correctly when a valid input file
+    is provided, and another to test for the correct exit value (i.e. 2) when
+    an invalid (e.g. non-existent file) is provided.
+(d) Output option: Testing to make sure that my program correctly handles a
+    situation when the output option is provided. This test case created an
+    output file, but removed the write permissions of the file to test the
+    case when it is un-openable/creatable. This was used to test to make sure
+    that my program exited with the correct value (i.e. 3)
+(e) Input and Output option: Testing to make sure that my program correctly
+    handles the case when both the input and output options are provided. In
+    this case, it is just checking to make sure that my program correctly
+    copies the input to output with the files provided by the user, and
+    checks for this with the cmp command.
+(f) Catch and Segfault option: Testing to make sure that the user-defined
+    catch of the segfault signal was executed correctly, and this is checked
+    for by making sure that it exits with the correct value (i.e. 4)
+
+Research and Citations:
+- The TA Discussion slides and the man pages of used functions were especially useful
+- Below are a list of other websites that I used for research on required functions and syntax:
+    https://www.gnu.org/software/libc/manual/html_node/Getopt-Long-Option-Example.html#Getopt-Long-Option-Example
+        - getopt_long guidelines and example
+    http://www.thegeekstuff.com/2012/03/catch-signals-sample-c-code/
+        - signal handler simple example
+    https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html#Basic-Signal-Handling
+        - Basic signal handling guidelines
+    https://linuxprograms.wordpress.com/2012/06/22/c-getopt-example/
+        - print_usage format example
+    http://courses.cms.caltech.edu/cs11/material/general/usage.html
+        - print_usage => what to include
+    http://www.cim.mcgill.ca/~franco/OpSys-304-427/lecture-notes/node22.html#SECTION00061400000000000000
+        - Read/write syntax refresher
+    https://www.gnu.org/software/libc/manual/html_node/Using-Getopt.html
+        - For definitions on optarg
+    https://www.gnu.org/prep/standards/html_node/Standard-Targets.html
+        - Makefile guidelines
+    https://www.gnu.org/software/make/manual/html_node/Complex-Makefile.html
+        - Makefile guidelines and example

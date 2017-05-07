@@ -1,0 +1,46 @@
+# Identification for Project:
+# Name: Jason Less
+# Email: jaless1997@gmail.com
+# ID: 404-640-158
+
+# define the C compiler to use
+CC = gcc
+
+# define any compile-time flags
+CDEBUG = -g
+CFLAGS = $(CDEBUG)
+
+# define the auxillary files to include
+AUX = Makefile README lab0.c backtrace.png breakpoint.png
+
+# define the executable program
+MAIN = lab0
+
+# define the C source modules
+SRCS_C = lab0.c
+
+# define student ID for use in dist target
+STUDENT_ID = 404640158
+
+# define the name of tarball
+TARBALL_NAME = $(MAIN)-$(STUDENT_ID)
+
+default:
+@$(CC) $(CFLAGS) -o $(Main) $(SRCS_C)
+
+check: default tests
+@
+
+clean:
+@rm -f $(MAIN) *.o *.txt *.tar.gz
+
+dist:
+@tar -czf $(TARBALL_NAME) $(AUX)
+
+# Smoke-test
+
+tests: test1 test2 ...
+
+test1:
+
+test2:
