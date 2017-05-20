@@ -97,13 +97,13 @@ void
 parser(int argc, char * argv[]) {
     static struct option long_options[] =
     {
-        {"period",      required_argument,    0, 'p'},
+        {"period",      optional_argument,    0, 'p'},
         {"scale",       required_argument,    0, 's'},
         {"log",         required_argument,    0, 'l'},
     };
     
     int option;
-    while ( (option = getopt_long(argc, argv, "p:s:l:", long_options, NULL)) != -1) {
+    while ( (option = getopt_long(argc, argv, "ps:l:", long_options, NULL)) != -1) {
         switch (option) {
             // Period option
             case 'p':
