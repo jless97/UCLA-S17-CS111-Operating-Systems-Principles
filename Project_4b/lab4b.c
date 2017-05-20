@@ -50,7 +50,7 @@ int log_file;
 sig_atomic_t volatile run_flag = 1;
 // If log option
 int log_flag = 0;
-
+int report_flag = 1;
 /* Structs */
 // Poll I/O struct
 struct pollfd polled_fds[1];
@@ -105,11 +105,11 @@ parser(int argc, char * argv[]) {
     int option;
     while ( (option = getopt_long(argc, argv, "ps:l:", long_options, NULL)) != -1) {
         switch (option) {
-            // Period option
+                // Period option
             case 'p':
                 period_value = atoi(optarg);
                 break;
-            // Scale option
+                // Scale option
             case 's':
                 if (strlen(optarg) == 1) {
                     if (optarg[0] == 'F')
@@ -128,7 +128,7 @@ parser(int argc, char * argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
-            // Log option
+                // Log option
             case 'l':
                 log_flag = 1;
                 log_file = creat(optarg, 0666);
@@ -137,7 +137,7 @@ parser(int argc, char * argv[]) {
                     exit(EXIT_FAILURE);
                 }
                 break;
-            // Unrecognized argument
+                // Unrecognized argument
             default:
                 print_usage();
                 exit(EXIT_FAILURE);
@@ -216,7 +216,7 @@ createReport(void) {
 }
 
 // Read from keyboard and write to the STDOUT (or logfile if specified)
-// TODO: skeleton
+// TODO: still just a skeleton
 void
 poll_service_keyboard(void) {
     memset(buf, 0, BUFFER_SIZE);
@@ -231,19 +231,33 @@ poll_service_keyboard(void) {
         // Automatically restore terminal modes on exit via atexit(restore...)
         exit(EXIT_SUCCESS);
     }
-    for (i = 0; i  < nread; i++) {
-        switch(buf[i]) {
-            default:
-                write(STDOUT_FILENO, buf + i, 1);
-                if (nwrite < 0) {
-                    fprintf(stderr, "Error writing from keyboard to STDOUT.\n");
-                    exit(EXIT_FAILURE);
-                }
-                if (log_flag == 1) {
-                }
-                break;
-        }
+    // Process the commands
+    if (strcmp(buf, "OFF") == 0) {
+        button_handler();
     }
+    else if (strcmp(buf, "STOP") == 0) {
+        if (report_flag == 0) {
+            // log receipt of command
+        }
+        report_flag = 0;
+    }
+    else if (strcmp(buf, "START") == 0) {
+        if (report_flag == 1) {
+            // log receipt of command
+        }
+        report_flag = 1;
+    }
+    else if (strcmp(buf, "SCALE=F") == 0) {
+        temperature_scale = 'F';
+    }
+    else if (strcmp(buf, "SCALE=C") == 0) {
+        temperature_scale = 'C';
+    }
+    // TODO: edge case
+    else if (strcmp(buf, "PERIOD= ") == 0) {
+        
+    }
+    memset(buf, 0, BUFFER_SIZE);
 }
 
 void
@@ -283,7 +297,7 @@ main (int argc, char *argv[])
     
     // Parse command-line options
     parser(argc, argv);
-
+    
     // Initialize the button and temperature sensors
     initSensors();
     
