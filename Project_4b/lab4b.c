@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Includes ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-#include <mraa/gpio.h>
+#i#include <mraa/gpio.h>
 #include <mraa/aio.h>
 #include <mraa/i2c.h>
 #include <stdio.h>
@@ -19,15 +19,15 @@
 #include <math.h>
 #include <signal.h>
 #include <getopt.h>
-#include <poll.>
+#include <poll.h>
 #include <fcntl.h>
 #include <time.h>   /* time_t, struct tm, time, localtime, current_time, previous_time */
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Defines ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-#define ENTRY_BUFFER_SIZE 16
 #define BUFFER_SIZE 256
+#define ENTRY_BUFFER_SIZE 16
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Globals ////////////////////////////////////
@@ -38,11 +38,11 @@ mraa_gpio_context button;
 mraa_aio_context temperature;
 // Temperature sensor conversion variables
 const int B = 4275;     // B value of the thermistor
-const int R0 = 10000;   // R0 = 100k
+const int R0 = 100000;   // R0 = 100k
 // Buffer to read/write from STDIN
 char buf[BUFFER_SIZE];
-// Buffer to create report entries
-char *report_entry[BUFFER_SIZE];
+// Buffer for report entry
+char report_entry[ENTRY_BUFFER_SIZE];
 // Variable to store the current temperature scale value (i.e. Fahrenheit/Celsius)
 char temperature_scale;
 // Sampling rate (period) (default to 1 sample/sec)
@@ -78,9 +78,9 @@ void shutdownSensors(void);
 // Process pressing of the button sensor
 void button_handler(void);
 // Get current local time
-char* getTime(void);
+char* getTime(char *entry);
 // Get temperature (F/C)
-float getTemperature(int temperature, char temperature_scale);
+float getTemperature(uint32_t temperature, char temperature_scale);
 // Creates report entries
 void createReport(float temperature);
 
@@ -103,11 +103,11 @@ handler(int signum) {
 void
 parser(int argc, char * argv[]) {
     static struct option long_options[] =
-    {
+      {
         {"period",      optional_argument,    0, 'p'},
         {"scale",       required_argument,    0, 's'},
         {"log",         required_argument,    0, 'l'},
-    };
+      };
     
     int option;
     while ( (option = getopt_long(argc, argv, "ps:l:", long_options, NULL)) != -1) {
@@ -121,23 +121,23 @@ parser(int argc, char * argv[]) {
                 }
                 break;
                 // Scale option
-            case 's':
-                if (strlen(optarg) == 1) {
-                    if (optarg[0] == 'F')
-                        temperature_scale = 'F';
-                    else if (optarg[0] == 'C')
-                        temperature_scale = 'C';
-                    else {
-                        fprintf(stderr, "Error: incorrect scale option.\n")
-                        print_usage();
-                        exit(EXIT_FAILURE);
-                    }
-                }
+        case 's':
+            if (strlen(optarg) == 1) {
+                if (optarg[0] == 'F')
+                    temperature_scale = 'F';
+                else if (optarg[0] == 'C')
+                    temperature_scale = 'C';
                 else {
-                    fprintf(stderr, "Error: scale option should be a single char\n");
+                    fprintf(stderr, "Error: incorrect scale option.\n");
                     print_usage();
                     exit(EXIT_FAILURE);
                 }
+            }
+            else {
+                fprintf(stderr, "Error: scale option should be a single char\n");
+                print_usage();
+                exit(EXIT_FAILURE);
+            }
                 break;
                 // Log option
             case 'l':
@@ -170,7 +170,7 @@ initSensors(void) {
     // Indicating the button is a general-purpose input
     mraa_gpio_dir(button, MRAA_GPIO_IN);
     // Register the button, so that when pressed, it will be properly serviced
-    mraa_gpio_isr(button, MRAA_GPIO_EDGE_RISING, &button_handler, NULL);
+    mraa_gpio_isr(button, MRAA_GPIO_EDGE_RISING, (void *)&button_handler, NULL);
 }
 
 void
@@ -182,19 +182,19 @@ shutdownSensors(void) {
 void
 button_handler(void) {
     // Logs final sample with the time and SHUTDOWN string (instead of data values)
-    char *shutdown_string;
-    strcat(shutdown_string, getTime());
-    strcat(shutdown_string, "SHUTDOWN\n");
-    fprintf(stdout, "%s", shutdown_string);
+    memset(report_entry, 0, ENTRY_BUFFER_SIZE);
+    strcpy(report_entry, getTime(report_entry));
+    strcat(report_entry, " SHUTDOWN\n");
+    fprintf(stdout, "%s", report_entry);
     if (log_flag == 1) {
         // Append shutdown string to logfile
-        strcat(log_file, shutdown_string);
+        write(log_file, report_entry, strlen(report_entry));
     }
     exit(EXIT_SUCCESS);
 }
 
 char*
-getTime(void) {
+getTime(char *entry) {
     // Get current time
     time_t rawtime;
     struct tm *time_info;
@@ -202,7 +202,8 @@ getTime(void) {
     time(&rawtime);
     time_info = localtime(&rawtime);
     
-    return (asctime(&time_info));
+    snprintf(entry, 9, "%02d:%02d:%02d", time_info->tm_hour, time_info->tm_min, time_info->tm_sec);
+    return entry;
 }
 
 float
@@ -224,95 +225,91 @@ getTemperature(uint32_t temperature, char temperature_scale) {
 
 void
 createReport(float temperature) {
-    // Clear out the report_entry buffer
+    // Clear out report entry buffer
     memset(report_entry, 0, ENTRY_BUFFER_SIZE);
     
     // Append current local time to report entry
-    strcat(report_entry, getTime());
-    strcat(report_entry, " ");
-    
-    // Get current temperature
-    strcat(report_entry, temperature);
-    strcat(report_entry, "\n");
+    strcpy(report_entry, getTime(report_entry));
     
     // Writes report entry to STDOUT (and also logfile if specified)
-    fprintf(stdout, "%s", report_entry);
+    fprintf(stdout, "%s %.1f\n", report_entry, temperature);
     if (log_flag == 1) {
         // Append entry to logfile
-        strcat(log_file, report_entry);
+        write(log_file, report_entry, strlen(report_entry));
+        dprintf(log_file, " %.1f\n", temperature);
     }
 }
 
 // Read from keyboard and write to the STDOUT (or logfile if specified)
 // TODO: still just a skeleton
-void
-poll_service_keyboard(void) {
-    memset(buf, 0, BUFFER_SIZE);
-    ssize_t nread, nwrite;
-    int i;
-    nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
-    if (nread < 0) {
-        fprintf(stderr, "Error reading from STDIN.\n");
-        exit(EXIT_FAILURE);
-    }
-    else if (nread == 0) {
-        // Automatically restore terminal modes on exit via atexit(restore...)
-        exit(EXIT_SUCCESS);
-    }
-    // Process the commands
-    if (strcmp(buf, "OFF") == 0) {
-        button_handler();
-    }
-    else if (strcmp(buf, "STOP") == 0) {
-        if (report_flag == 0) {
-            // log receipt of command
-        }
-        report_flag = 0;
-    }
-    else if (strcmp(buf, "START") == 0) {
-        if (report_flag == 1) {
-            // log receipt of command
-        }
-        report_flag = 1;
-    }
-    else if (strcmp(buf, "SCALE=F") == 0) {
-        temperature_scale = 'F';
-    }
-    else if (strcmp(buf, "SCALE=C") == 0) {
-        temperature_scale = 'C';
-    }
-    // TODO: edge case
-    else if (strcmp(buf, "PERIOD= ") == 0) {
-        
-    }
-    memset(buf, 0, BUFFER_SIZE);
-}
-
-void
-poll_io_handler(void) {
-    // Input received from the keyboard
-    polled_fds[0].fd = STDIN_FILENO;
-    polled_fds[0].events = POLLIN | POLLHUP | POLLERR;
-    
-    int nwrite, poll_status, num_fds = 1, timeout = 0;
-    while(1) {
-        poll_status = poll(polled_fds, num_fds, timeout);
-        if (poll_status == -1) {
-            fprintf(stderr, "Error with poll I/O.\n");
-            exit(EXIT_FAILURE);
-        }
-        else {
-            //Check for events on keyboard
-            if (polled_fds[0].revents & POLLIN) {
-                poll_service_keyboard();
-            }
-            // Check for errors on keyboard
-            if (polled_fds[0].revents & (POLLHUP | POLLERR)) {
-                exit(EXIT_SUCCESS);
-            }
-        }
-    }
-}
+//void
+//poll_service_keyboard(void) {
+//  memset(buf, 0, BUFFER_SIZE);
+//  ssize_t nread, nwrite;
+//  int i;
+//  nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
+//  if (nread < 0) {
+//    fprintf(stderr, "Error reading from STDIN.\n");
+//    exit(EXIT_FAILURE);
+//  }
+//  else if (nread == 0) {
+//    // Automatically restore terminal modes on exit via atexit(restore...)
+//    exit(EXIT_SUCCESS);
+//  }
+//  // Process the commands
+//  if (strcmp(buf, "OFF") == 0) {
+//    button_handler();
+//  }
+//  else if (strcmp(buf, "STOP") == 0) {
+//    if (report_flag == 0) {
+//      // log receipt of command
+//    }
+//    report_flag = 0;
+//  }
+//  else if (strcmp(buf, "START") == 0) {
+//    if (report_flag == 1) {
+//      // log receipt of command
+//    }
+//    report_flag = 1;
+//  }
+//  else if (strcmp(buf, "SCALE=F") == 0) {
+//    temperature_scale = 'F';
+//  }
+//  else if (strcmp(buf, "SCALE=C") == 0) {
+//    temperature_scale = 'C';
+//  }
+//  // TODO: edge case
+//  else if (strcmp(buf, "PERIOD= ") == 0) {
+//        
+//  }
+//  memset(buf, 0, BUFFER_SIZE);
+//}
+//
+//void
+//poll_io_handler(void) {
+//  // Input received from the keyboard
+//  polled_fds[0].fd = STDIN_FILENO;
+//  polled_fds[0].events = POLLIN | POLLHUP | POLLERR;
+//    
+//  int nwrite, poll_status, num_fds = 1, timeout = 0;
+//  while(1) {
+//    poll_status = poll(polled_fds, num_fds, timeout);
+//    if (poll_status == -1) {
+//      fprintf(stderr, "Error with poll I/O.\n");
+//      exit(EXIT_FAILURE);
+//    }
+//    else {
+//      //Check for events on keyboard
+//      if (polled_fds[0].revents & POLLIN) {
+//	poll_service_keyboard();
+//      }
+//      // Check for errors on keyboard
+//      if (polled_fds[0].revents & (POLLHUP | POLLERR)) {
+//	exit(EXIT_SUCCESS);
+//      }
+//    }
+//  }
+//}
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Main Function //////////////////////////////
@@ -340,6 +337,7 @@ main (int argc, char *argv[])
     // Variables to hold voltage and temperature values
     uint32_t voltage_value;
     float temperature_value;
+    memset(report_entry, 0, ENTRY_BUFFER_SIZE);
     while (run_flag) {
         // Polling for input commands (OFF, STOP, START, SCALE=F/C, PERIOD=seconds)
         //poll_io_handler();
@@ -350,16 +348,17 @@ main (int argc, char *argv[])
             fprintf(stderr, "Error with current clock time.\n");
             exit(EXIT_FAILURE);
         }
-        if (current_time.tv_sec > (previous_time.tv_sec + period_value)) {
+        if (current_time.tv_sec >= (previous_time.tv_sec + period_value)) {
             // Reset previous sample time to the current sample time
             previous_time.tv_sec = current_time.tv_sec;
             
             // Read in from the temperature sensor and convert to appropriate scale
             voltage_value = mraa_aio_read(temperature);
             temperature_value = getTemperature(voltage_value, temperature_scale);
-            
+        
             // Create the report (to STDOUT and log if specified)
             createReport(temperature_value);
+        
         }
     }
     
