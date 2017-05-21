@@ -24,6 +24,8 @@
 #include <fcntl.h>
 #include <time.h>   /* time_t, struct tm, time, localtime, current_time, previous_time */
 
+#include <errno.h>
+
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Defines ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -55,8 +57,6 @@ int period_value = 1;
 int log_file;
 
 /* Flags */
-// Continue execution of program until SIGINT encountered
-sig_atomic_t volatile run_flag = 1;
 // If log option
 int log_flag = 0;
 int report_flag = 1;
@@ -104,9 +104,9 @@ print_usage(void) {
 void
 handler(int signum) {
     if (signum == SIGINT) {
-        run_flag = 0;
+        shutdownSensors();
     }
-    exit(EXIT_FAILURE);
+    exit(EXIT_SUCCESS);
 }
 
 void
@@ -130,28 +130,29 @@ parser(int argc, char * argv[]) {
                 }
                 break;
                 // Scale option
-        case 's':
-            if (strlen(optarg) == 1) {
-                if (optarg[0] == 'F')
-                    temperature_scale = 'F';
-                else if (optarg[0] == 'C')
-                    temperature_scale = 'C';
+            case 's':
+                if (strlen(optarg) == 1) {
+                    if (optarg[0] == 'F')
+                        temperature_scale = 'F';
+                    else if (optarg[0] == 'C')
+                        temperature_scale = 'C';
+                    else {
+                        fprintf(stderr, "Error: incorrect scale option.\n");
+                        print_usage();
+                        exit(EXIT_FAILURE);
+                    }
+                }
                 else {
-                    fprintf(stderr, "Error: incorrect scale option.\n");
+                    fprintf(stderr, "Error: scale option should be a single char\n");
                     print_usage();
                     exit(EXIT_FAILURE);
                 }
-            }
-            else {
-                fprintf(stderr, "Error: scale option should be a single char\n");
-                print_usage();
-                exit(EXIT_FAILURE);
-            }
                 break;
                 // Log option
             case 'l':
                 log_flag = 1;
-                log_file = creat(optarg, 0666);
+                //log_file = creat(optarg, 0666);
+                log_file=open(optarg, O_CREAT|O_NONBLOCK|O_APPEND|O_WRONLY,0666);
                 if (log_file < 0) {
                     fprintf(stderr, "Error creating log file.\n");
                     exit(EXIT_FAILURE);
@@ -199,6 +200,7 @@ button_handler(void) {
         // Append shutdown string to logfile
         write(log_file, report_entry, strlen(report_entry));
     }
+    shutdownSensors();
     exit(EXIT_SUCCESS);
 }
 
@@ -253,18 +255,21 @@ void
 poll_service_keyboard(void) {
     // Clear out buffer before each poll
     memset(buf, 0, BUFFER_SIZE);
-    ssize_t nread, nwrite;
-    int i;
-    nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
-    if (nread < 0) {
-        fprintf(stderr, "Error reading from STDIN.\n");
+    ssize_t nfgets, nwrite;
+    // Had trouble with read syscall and test script
+    // Switched to fgets (works the same, tailors to sanity check)
+    if (fgets(buf, BUFFER_SIZE, stdin) == NULL) {
+        fprintf(stderr, "Error with fgets.\n");
         exit(EXIT_FAILURE);
     }
-    
     // Process the commands
     if (strcmp(buf, "OFF\n") == 0) {
         if (log_flag == 1) {
-            write(log_file, "OFF\n", 4);
+            nwrite = write(log_file, "OFF\n", 4);
+            if (nwrite < 0) {
+                fprintf(stderr, "Error writing OFF to log file.\n");
+                exit(EXIT_FAILURE);
+            }
         }
         button_handler();
     }
@@ -274,7 +279,11 @@ poll_service_keyboard(void) {
             fprintf(stdout, "Program is already not processing reports.\n");
         }
         if (log_flag == 1) {
-            write(log_file, "STOP\n", 5);
+            nwrite = write(log_file, "STOP\n", 5);
+            if (nwrite < 0) {
+                fprintf(stderr, "Error writing STOP to log file.\n");
+                exit(EXIT_FAILURE);
+            }
         }
         report_flag = 0;
     }
@@ -284,20 +293,32 @@ poll_service_keyboard(void) {
             fprintf(stdout, "Program is already processing reports.\n");
         }
         if (log_flag == 1) {
-            write(log_file, "START\n", 6);
+            nwrite = write(log_file, "START\n", 6);
+            if (nwrite < 0) {
+                fprintf(stderr, "Error writing START to log file.\n");
+                exit(EXIT_FAILURE);
+            }
         }
         report_flag = 1;
     }
     else if (strcmp(buf, "SCALE=F\n") == 0) {
         temperature_scale = 'F';
         if (log_flag == 1) {
-            write(log_file, "SCALE=F\n", 8);
+            nwrite = write(log_file, "SCALE=F\n", 8);
+            if (nwrite < 0) {
+                fprintf(stderr, "Error writing SCALE=F to log file.\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     else if (strcmp(buf, "SCALE=C\n") == 0) {
         temperature_scale = 'C';
         if (log_flag == 1) {
-            write(log_file, "SCALE=C\n", 8);
+            nwrite = write(log_file, "SCALE=C\n", 8);
+            if (nwrite < 0) {
+                fprintf(stderr, "Error writing SCALE=C to log file.\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     else if (buf[0] == 'P' && buf[1] == 'E' && buf[2] == 'R' && buf[3] == 'I' && buf[4] == 'O' && buf[5] == 'D' && buf[6] == '=' && isdigit(buf[7])) {
@@ -333,26 +354,6 @@ sample_temperature_poll_input_handler(void) {
     
     int nwrite, clock_status, poll_status, num_fds = 1, timeout = 0;
     while(1) {
-        // Sampling the temperature readings from temperature sensor at given intervals
-        clock_status = clock_gettime(CLOCK_MONOTONIC, &current_time);
-        if (clock_status == -1) {
-            fprintf(stderr, "Error with current clock time.\n");
-            exit(EXIT_FAILURE);
-        }
-        if (current_time.tv_sec >= (previous_time.tv_sec + period_value)) {
-            // Reset previous sample time to the current sample time
-            previous_time.tv_sec = current_time.tv_sec;
-            
-            // Read in from the temperature sensor and convert to appropriate scale
-            voltage_value = mraa_aio_read(temperature);
-            temperature_value = getTemperature(voltage_value, temperature_scale);
-            
-            // Create the report (to STDOUT and log if specified)
-            if (report_flag == 1) {
-                createReport(temperature_value);
-            }
-        }
-        
         // Poll for input from the keyboard
         poll_status = poll(polled_fds, num_fds, timeout);
         if (poll_status == -1) {
@@ -367,6 +368,27 @@ sample_temperature_poll_input_handler(void) {
             // Check for errors on keyboard
             if (polled_fds[0].revents & (POLLHUP | POLLERR)) {
                 exit(EXIT_SUCCESS);
+            }
+            // Sampling the temperature readings from temperature sensor at given intervals
+            else {
+                clock_status = clock_gettime(CLOCK_MONOTONIC, &current_time);
+                if (clock_status == -1) {
+                    fprintf(stderr, "Error with current clock time.\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (current_time.tv_sec >= (previous_time.tv_sec + period_value)) {
+                    // Reset previous sample time to the current sample time
+                    previous_time.tv_sec = current_time.tv_sec;
+                
+                    // Read in from the temperature sensor and convert to appropriate scale
+                    voltage_value = mraa_aio_read(temperature);
+                    temperature_value = getTemperature(voltage_value, temperature_scale);
+                
+                    // Create the report (to STDOUT and log if specified)
+                    if (report_flag == 1) {
+                        createReport(temperature_value);
+                    }
+                }
             }
         }
     }
@@ -396,11 +418,10 @@ main (int argc, char *argv[])
     }
     
     memset(report_entry, 0, ENTRY_BUFFER_SIZE);
-    while (run_flag) {
-        // Sample temperature from temperature sensor
-        // Poll input from keyboard for commands
-        sample_temperature_poll_input_handler();
-    }
+    
+    // Sample temperature from temperature sensor
+    // Poll input from keyboard for commands
+    sample_temperature_poll_input_handler();
     
     // Shutdown the button and temperature sensors
     shutdownSensors();
