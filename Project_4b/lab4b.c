@@ -17,6 +17,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include <ctype.h>
 #include <signal.h>
 #include <getopt.h>
 #include <poll.h>
@@ -251,46 +252,76 @@ createReport(float temperature) {
 // TODO: still just a skeleton
 void
 poll_service_keyboard(void) {
-  memset(buf, 0, BUFFER_SIZE);
-  ssize_t nread, nwrite;
-  int i;
-  nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
-  if (nread < 0) {
-    fprintf(stderr, "Error reading from STDIN.\n");
-    exit(EXIT_FAILURE);
-  }
+    // Clear out buffer before each poll
+    memset(buf, 0, BUFFER_SIZE);
+    ssize_t nread, nwrite;
+    int i;
+    nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
+    if (nread < 0) {
+        fprintf(stderr, "Error reading from STDIN.\n");
+        exit(EXIT_FAILURE);
+    }
     
-  // Process the commands
-  if (strcmp(buf, "OFF") == 0) {
-    button_handler();
-  }
-  else if (strcmp(buf, "STOP") == 0) {
-    if (report_flag == 0) {
-      // log receipt of command
-        printf("stop\n");
+    // Process the commands
+    if (strcmp(buf, "OFF\n") == 0) {
+        if (log_flag == 1) {
+            write(log_file, "OFF\n", 4);
+        }
+        button_handler();
     }
-    report_flag = 0;
-  }
-  else if (strcmp(buf, "START") == 0) {
-    if (report_flag == 1) {
-      // log receipt of command
-        printf("start\n");
+    else if (strcmp(buf, "STOP\n") == 0) {
+        if (report_flag == 0) {
+            // log receipt of command
+            fprintf(stdout, "Program is already not processing reports.\n");
+        }
+        if (log_flag == 1) {
+            write(log_file, "STOP\n", 5);
+        }
+        report_flag = 0;
     }
-    report_flag = 1;
-  }
-  else if (strcmp(buf, "SCALE=F") == 0) {
-    temperature_scale = 'F';
-      printf("f\n");
-  }
-  else if (strcmp(buf, "SCALE=C") == 0) {
-    temperature_scale = 'C';
-      printf("c\n");
-  }
-  // TODO: edge case
-  else if (strcmp(buf, "PERIOD= ") == 0) {
-        
-  }
-  memset(buf, 0, BUFFER_SIZE);
+    else if (strcmp(buf, "START\n") == 0) {
+        if (report_flag == 1) {
+            // log receipt of command
+            fprintf(stdout, "Program is already processing reports.\n");
+        }
+        if (log_flag == 1) {
+            write(log_file, "START\n", 6);
+        }
+        report_flag = 1;
+    }
+    else if (strcmp(buf, "SCALE=F\n") == 0) {
+        temperature_scale = 'F';
+        if (log_flag == 1) {
+            write(log_file, "SCALE=F\n", 8);
+        }
+    }
+    else if (strcmp(buf, "SCALE=C\n") == 0) {
+        temperature_scale = 'C';
+        if (log_flag == 1) {
+            write(log_file, "SCALE=C\n", 8);
+        }
+    }
+    // TODO: edge case
+    else if (buf[0] == 'P' && buf[1] == 'E' && buf[2] == 'R' && buf[3] == 'I' && buf[4] == 'O' && buf[5] == 'D' && buf[6] == '=' && isdigit(buf[7])) {
+        int temp_flag = 1;
+        unsigned pow = 10;
+        unsigned temp = buf[7];
+        int i = 1;
+        if (buf[8] == '\n')
+            temp_flag = 0;
+        while (temp_flag && isdigit(buf[7+i])) {
+            temp = temp * pow + buf[7+i];
+            printf("while: %d\n", temp);
+            pow *= 10;
+            i++;
+            
+        }
+        period_value = temp;
+        printf("temp:%d\n", temp);
+        printf("period value:%d\n", period_value);
+    }
+    // Reset buffer before next poll
+    memset(buf, 0, BUFFER_SIZE);
 }
 
 void
@@ -316,7 +347,9 @@ sample_temperature_poll_input_handler(void) {
             temperature_value = getTemperature(voltage_value, temperature_scale);
             
             // Create the report (to STDOUT and log if specified)
-            createReport(temperature_value);
+            if (report_flag == 1) {
+                createReport(temperature_value);
+            }
         }
         
         // Poll for input from the keyboard
