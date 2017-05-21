@@ -253,93 +253,101 @@ void
 poll_service_keyboard(void) {
     // Clear out buffer before each poll
     memset(buf, 0, BUFFER_SIZE);
-    ssize_t nfgets, nwrite;
-    // Had trouble with read syscall and test script
-    // Switched to fgets (works the same, tailors to sanity check)
-    if (fgets(buf, BUFFER_SIZE, stdin) == NULL) {
-        fprintf(stderr, "Error with fgets.\n");
+    ssize_t nread, nwrite;
+
+    // Process the commands
+    int i;
+    nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
+    if (nread < 0) {
+        fprintf(stderr, "Error reading from STDIN.\n");
         exit(EXIT_FAILURE);
     }
-    // Process the commands
-    if (strcmp(buf, "OFF\n") == 0) {
-        if (log_flag == 1) {
-            nwrite = write(log_file, "OFF\n", 4);
-            if (nwrite < 0) {
-                fprintf(stderr, "Error writing OFF to log file.\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-        button_handler();
+    else if (nread == 0) {
+        shutdownSensors();
+        exit(EXIT_FAILURE);
     }
-    else if (strcmp(buf, "STOP\n") == 0) {
-        if (report_flag == 0) {
-            // log receipt of command
-            fprintf(stdout, "Program is already not processing reports.\n");
-        }
-        if (log_flag == 1) {
-            nwrite = write(log_file, "STOP\n", 5);
-            if (nwrite < 0) {
-                fprintf(stderr, "Error writing STOP to log file.\n");
-                exit(EXIT_FAILURE);
+    for (i = 0; i < nread; i++) {
+        switch(buf[i]) {
+        case 'O':
+        if (buf[i]=='O' && buf[i+1]=='F' && buf[i+2]=='F' && buf[i+3]=='\n') {
+            if (log_flag == 1) {
+                nwrite = write(log_file, "OFF\n", 4);
             }
+            i+=4;
+            button_handler();
         }
-        report_flag = 0;
-    }
-    else if (strcmp(buf, "START\n") == 0) {
-        if (report_flag == 1) {
-            // log receipt of command
-            fprintf(stdout, "Program is already processing reports.\n");
-        }
-        if (log_flag == 1) {
-            nwrite = write(log_file, "START\n", 6);
-            if (nwrite < 0) {
-                fprintf(stderr, "Error writing START to log file.\n");
-                exit(EXIT_FAILURE);
+        case 'S':
+        if (buf[i]=='S' && buf[i+1]=='T' && buf[i+2]=='O' && buf[i+3]=='P' && buf[i+4]=='\n') {
+            if (report_flag == 0) {
+                fprintf(stdout, "Program is already not processing reports.\n");
             }
-        }
-        report_flag = 1;
-    }
-    else if (strcmp(buf, "SCALE=F\n") == 0) {
-        temperature_scale = 'F';
-        if (log_flag == 1) {
-            nwrite = write(log_file, "SCALE=F\n", 8);
-            if (nwrite < 0) {
-                fprintf(stderr, "Error writing SCALE=F to log file.\n");
-                exit(EXIT_FAILURE);
+            if (log_flag == 1) {
+                nwrite = write(log_file, "STOP\n", 5);
             }
+            i+=4;
+            report_flag = 0;
         }
-    }
-    else if (strcmp(buf, "SCALE=C\n") == 0) {
-        temperature_scale = 'C';
-        if (log_flag == 1) {
-            nwrite = write(log_file, "SCALE=C\n", 8);
-            if (nwrite < 0) {
-                fprintf(stderr, "Error writing SCALE=C to log file.\n");
-                exit(EXIT_FAILURE);
+        else if (buf[i]=='S' && buf[i+1]=='T' && buf[i+2]=='A' && buf[i+3]=='R' && buf[i+4]=='T' && buf[i+5]=='\n') {
+            if (report_flag == 1) {
+                fprintf(stdout, "Program is already processing reports.\n");
             }
+            if (log_flag == 1) {
+                nwrite = write(log_file, "START\n", 6);
+            }
+            i+=5;
+            report_flag = 1;
         }
-    }
-    else if (buf[0] == 'P' && buf[1] == 'E' && buf[2] == 'R' && buf[3] == 'I' && buf[4] == 'O' && buf[5] == 'D' && buf[6] == '=' && isdigit(buf[7])) {
-        int single_digit_flag = 1;
-        int pow = 10;
-        int new_period_value = buf[7] - 48;
-
-        // If the new period value is a single digit
-        if (buf[8] == '\n')
-            single_digit_flag = 0;
-        
-        int i = 1;
-        // If new period value is multiple digits long
-        while (single_digit_flag && isdigit(buf[7 + i])) {
-            new_period_value = new_period_value * pow + buf[7 + i] - 48;
-            i++;
+        else if (buf[i]=='S' && buf[i+1]=='C' && buf[i+2]=='A' && buf[i+3]=='L' && buf[i+4]=='E' && buf[i+5]=='=' && buf[i+6]=='F' && buf[i+7]=='\n') {
+            temperature_scale = 'F';
+            if (log_flag == 1) {
+                nwrite = write(log_file, "SCALE=F\n", 8);
+                if (nwrite < 0) {
+                    fprintf(stderr, "Error writing SCALE=F to log file.\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            i+=6;
+        }
+        else if (buf[i]=='S' && buf[i+1]=='C' && buf[i+2]=='A' && buf[i+3]=='L' && buf[i+4]=='E' && buf[i+5]=='=' && buf[i+6]=='C' && buf[i+7]=='\n') {
+            temperature_scale = 'C';
+            if (log_flag == 1) {
+                nwrite = write(log_file, "SCALE=C\n", 8);
+                if (nwrite < 0) {
+                    fprintf(stderr, "Error writing SCALE=C to log file.\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
+            i+=6;
+        }
+        case 'P':
+        if (buf[i]=='P' && buf[i+1]=='E' && buf[i+2]=='R' && buf[i+3]=='I' && buf[i+4]=='O' && buf[i+5]=='D' && buf[i+6]=='=' && isdigit(buf[i+7])) {
+            int single_digit_flag = 1;
+            int pow = 10;
+            int new_period_value = buf[i+7] - 48;
             
+            // If the new period value is a single digit
+            if (buf[i+8] == '\n') {
+                i+=7;
+            }
+            else {
+                int count = 0;
+                int j = 1;
+                // If new period value is multiple digits long
+                while (isdigit(buf[i+7+j])) {
+                    new_period_value = new_period_value * pow + buf[7 + j] - 48;
+                    j++;
+                    count++;
+                }
+                i+=count;
+            }
+            if (log_flag == 1) {
+                dprintf(log_file, "PERIOD=%d\n", new_period_value);
+            }
+            period_value = new_period_value;
         }
-        if (log_flag == 1) {
-            dprintf(log_file, "PERIOD=%d\n", new_period_value);
         }
-        period_value = new_period_value;
     }
+    
     // Reset buffer before next poll
     memset(buf, 0, BUFFER_SIZE);
 }
