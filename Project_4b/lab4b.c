@@ -39,6 +39,9 @@ mraa_aio_context temperature;
 // Temperature sensor conversion variables
 const int B = 4275;     // B value of the thermistor
 const int R0 = 100000;   // R0 = 100k
+// Variables to hold voltage and temperature values
+uint32_t voltage_value;
+float temperature_value;
 // Buffer to read/write from STDIN
 char buf[BUFFER_SIZE];
 // Buffer for report entry
@@ -56,6 +59,7 @@ sig_atomic_t volatile run_flag = 1;
 // If log option
 int log_flag = 0;
 int report_flag = 1;
+
 /* Structs */
 // Poll I/O struct
 struct pollfd polled_fds[1];
@@ -83,7 +87,10 @@ char* getTime(char *entry);
 float getTemperature(uint32_t temperature, char temperature_scale);
 // Creates report entries
 void createReport(float temperature);
-
+// Sample temperature from the temperature sensor and poll for input from keyboard
+void sample_temperature_poll_input_handler(void);
+// Poll input from the keyboard
+void poll_service_keyboard(void);
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Function Definitions ///////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -242,74 +249,94 @@ createReport(float temperature) {
 
 // Read from keyboard and write to the STDOUT (or logfile if specified)
 // TODO: still just a skeleton
-//void
-//poll_service_keyboard(void) {
-//  memset(buf, 0, BUFFER_SIZE);
-//  ssize_t nread, nwrite;
-//  int i;
-//  nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
-//  if (nread < 0) {
-//    fprintf(stderr, "Error reading from STDIN.\n");
-//    exit(EXIT_FAILURE);
-//  }
-//  else if (nread == 0) {
-//    // Automatically restore terminal modes on exit via atexit(restore...)
-//    exit(EXIT_SUCCESS);
-//  }
-//  // Process the commands
-//  if (strcmp(buf, "OFF") == 0) {
-//    button_handler();
-//  }
-//  else if (strcmp(buf, "STOP") == 0) {
-//    if (report_flag == 0) {
-//      // log receipt of command
-//    }
-//    report_flag = 0;
-//  }
-//  else if (strcmp(buf, "START") == 0) {
-//    if (report_flag == 1) {
-//      // log receipt of command
-//    }
-//    report_flag = 1;
-//  }
-//  else if (strcmp(buf, "SCALE=F") == 0) {
-//    temperature_scale = 'F';
-//  }
-//  else if (strcmp(buf, "SCALE=C") == 0) {
-//    temperature_scale = 'C';
-//  }
-//  // TODO: edge case
-//  else if (strcmp(buf, "PERIOD= ") == 0) {
-//        
-//  }
-//  memset(buf, 0, BUFFER_SIZE);
-//}
-//
-//void
-//poll_io_handler(void) {
-//  // Input received from the keyboard
-//  polled_fds[0].fd = STDIN_FILENO;
-//  polled_fds[0].events = POLLIN | POLLHUP | POLLERR;
-//    
-//  int nwrite, poll_status, num_fds = 1, timeout = 0;
-//  while(1) {
-//    poll_status = poll(polled_fds, num_fds, timeout);
-//    if (poll_status == -1) {
-//      fprintf(stderr, "Error with poll I/O.\n");
-//      exit(EXIT_FAILURE);
-//    }
-//    else {
-//      //Check for events on keyboard
-//      if (polled_fds[0].revents & POLLIN) {
-//	poll_service_keyboard();
-//      }
-//      // Check for errors on keyboard
-//      if (polled_fds[0].revents & (POLLHUP | POLLERR)) {
-//	exit(EXIT_SUCCESS);
-//      }
-//    }
-//  }
-//}
+void
+poll_service_keyboard(void) {
+  memset(buf, 0, BUFFER_SIZE);
+  ssize_t nread, nwrite;
+  int i;
+  nread = read(STDIN_FILENO, buf, BUFFER_SIZE);
+  if (nread < 0) {
+    fprintf(stderr, "Error reading from STDIN.\n");
+    exit(EXIT_FAILURE);
+  }
+    
+  // Process the commands
+  if (strcmp(buf, "OFF") == 0) {
+    button_handler();
+  }
+  else if (strcmp(buf, "STOP") == 0) {
+    if (report_flag == 0) {
+      // log receipt of command
+        printf("stop\n");
+    }
+    report_flag = 0;
+  }
+  else if (strcmp(buf, "START") == 0) {
+    if (report_flag == 1) {
+      // log receipt of command
+        printf("start\n");
+    }
+    report_flag = 1;
+  }
+  else if (strcmp(buf, "SCALE=F") == 0) {
+    temperature_scale = 'F';
+      printf("f\n");
+  }
+  else if (strcmp(buf, "SCALE=C") == 0) {
+    temperature_scale = 'C';
+      printf("c\n");
+  }
+  // TODO: edge case
+  else if (strcmp(buf, "PERIOD= ") == 0) {
+        
+  }
+  memset(buf, 0, BUFFER_SIZE);
+}
+
+void
+sample_temperature_poll_input_handler(void) {
+    // Input received from the keyboard
+    polled_fds[0].fd = STDIN_FILENO;
+    polled_fds[0].events = POLLIN | POLLHUP | POLLERR;
+    
+    int nwrite, clock_status, poll_status, num_fds = 1, timeout = 0;
+    while(1) {
+        // Sampling the temperature readings from temperature sensor at given intervals
+        clock_status = clock_gettime(CLOCK_MONOTONIC, &current_time);
+        if (clock_status == -1) {
+            fprintf(stderr, "Error with current clock time.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (current_time.tv_sec >= (previous_time.tv_sec + period_value)) {
+            // Reset previous sample time to the current sample time
+            previous_time.tv_sec = current_time.tv_sec;
+            
+            // Read in from the temperature sensor and convert to appropriate scale
+            voltage_value = mraa_aio_read(temperature);
+            temperature_value = getTemperature(voltage_value, temperature_scale);
+            
+            // Create the report (to STDOUT and log if specified)
+            createReport(temperature_value);
+        }
+        
+        // Poll for input from the keyboard
+        poll_status = poll(polled_fds, num_fds, timeout);
+        if (poll_status == -1) {
+            fprintf(stderr, "Error with poll I/O.\n");
+            exit(EXIT_FAILURE);
+        }
+        else {
+            //Check for events on keyboard
+            if (polled_fds[0].revents & POLLIN) {
+                poll_service_keyboard();
+            }
+            // Check for errors on keyboard
+            if (polled_fds[0].revents & (POLLHUP | POLLERR)) {
+                exit(EXIT_SUCCESS);
+            }
+        }
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Main Function //////////////////////////////
@@ -334,32 +361,11 @@ main (int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     
-    // Variables to hold voltage and temperature values
-    uint32_t voltage_value;
-    float temperature_value;
     memset(report_entry, 0, ENTRY_BUFFER_SIZE);
     while (run_flag) {
-        // Polling for input commands (OFF, STOP, START, SCALE=F/C, PERIOD=seconds)
-        //poll_io_handler();
-        
-        // Sampling the temperature readings from temperature sensor at given intervals
-        clock_status = clock_gettime(CLOCK_MONOTONIC, &current_time);
-        if (clock_status == -1) {
-            fprintf(stderr, "Error with current clock time.\n");
-            exit(EXIT_FAILURE);
-        }
-        if (current_time.tv_sec >= (previous_time.tv_sec + period_value)) {
-            // Reset previous sample time to the current sample time
-            previous_time.tv_sec = current_time.tv_sec;
-            
-            // Read in from the temperature sensor and convert to appropriate scale
-            voltage_value = mraa_aio_read(temperature);
-            temperature_value = getTemperature(voltage_value, temperature_scale);
-        
-            // Create the report (to STDOUT and log if specified)
-            createReport(temperature_value);
-        
-        }
+        // Sample temperature from temperature sensor
+        // Poll input from keyboard for commands
+        sample_temperature_poll_input_handler();
     }
     
     // Shutdown the button and temperature sensors
