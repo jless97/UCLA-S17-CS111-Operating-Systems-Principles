@@ -41,7 +41,7 @@ invalid_arg_test:
 	fi
 
 create_logfile_test:
-	./lab4b --period=5 --log=log.txt ;&>/dev/null \
+	./lab4b --period=5 --log=log.txt ; &>/dev/null \
 	if [[ ! -s log.txt ]]; then \
 	echo "Error: ./lab4b doesn't create log file" >> failure_log.txt ; \
 	else \
