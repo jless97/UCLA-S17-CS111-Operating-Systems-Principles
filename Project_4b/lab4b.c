@@ -16,17 +16,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <signal.h>
 #include <getopt.h>
 #include <poll.>
 #include <fcntl.h>
-#include <time.h>   /* time_t, struct tm, time, localtime */
+#include <time.h>   /* time_t, struct tm, time, localtime, current_time, previous_time */
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Defines ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
 #define ENTRY_BUFFER_SIZE 16
 #define BUFFER_SIZE 256
+
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Globals ////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -34,6 +36,9 @@
 // The two sensors used to capture temperature and process button action
 mraa_gpio_context button;
 mraa_aio_context temperature;
+// Temperature sensor conversion variables
+const int B = 4275;     // B value of the thermistor
+const int R0 = 10000;   // R0 = 100k
 // Buffer to read/write from STDIN
 char buf[BUFFER_SIZE];
 // Buffer to create report entries
@@ -54,8 +59,8 @@ int report_flag = 1;
 /* Structs */
 // Poll I/O struct
 struct pollfd polled_fds[1];
-
-/* Arrays */
+// Time structs to setup sampling interval of temperature sensor
+struct timespec current_time, previous_time;
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Prototypes /////////////////////////////////
@@ -74,8 +79,10 @@ void shutdownSensors(void);
 void button_handler(void);
 // Get current local time
 char* getTime(void);
-// Creates report entries (TODO: add the necessary args (i.e. time, temp))
-void createReport(void);
+// Get temperature (F/C)
+float getTemperature(int temperature, char temperature_scale);
+// Creates report entries
+void createReport(float temperature);
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Function Definitions ///////////////////////
@@ -108,6 +115,10 @@ parser(int argc, char * argv[]) {
                 // Period option
             case 'p':
                 period_value = atoi(optarg);
+                if (period_value < 0) {
+                    fprintf(stderr, "Error: period must be positive value.\n");
+                    exit(EXIT_FAILURE);
+                }
                 break;
                 // Scale option
             case 's':
@@ -177,7 +188,7 @@ button_handler(void) {
     fprintf(stdout, "%s", shutdown_string);
     if (log_flag == 1) {
         // Append shutdown string to logfile
-        //strcat(log_file, shutdown_string);
+        strcat(log_file, shutdown_string);
     }
     exit(EXIT_SUCCESS);
 }
@@ -194,8 +205,25 @@ getTime(void) {
     return (asctime(&time_info));
 }
 
+float
+getTemperature(uint32_t temperature, char temperature_scale) {
+    float R, celsius, fahrenheit;
+    
+    R = (1023.0/temperature - 1.0) * R0;
+    celsius = 1.0/(log(R/R0)/B + 1/298.15) - 273.15;
+    
+    if (temperature_scale == 'F') {
+        fahrenheit = (1.8 * celsius) + 32;
+        return fahrenheit;
+    }
+    else {
+        return celsius;
+    }
+}
+
+
 void
-createReport(void) {
+createReport(float temperature) {
     // Clear out the report_entry buffer
     memset(report_entry, 0, ENTRY_BUFFER_SIZE);
     
@@ -203,15 +231,15 @@ createReport(void) {
     strcat(report_entry, getTime());
     strcat(report_entry, " ");
     
-    // Get current temperature (TODO: this value will be passed in (F or C))
-    //strcat(report_entry, temperature);
+    // Get current temperature
+    strcat(report_entry, temperature);
     strcat(report_entry, "\n");
     
     // Writes report entry to STDOUT (and also logfile if specified)
     fprintf(stdout, "%s", report_entry);
     if (log_flag == 1) {
         // Append entry to logfile
-        //strcat(log_file, ...);
+        strcat(log_file, report_entry);
     }
 }
 
@@ -301,11 +329,38 @@ main (int argc, char *argv[])
     // Initialize the button and temperature sensors
     initSensors();
     
+    // Initialize time struct variable
+    int clock_status;
+    clock_status = clock_gettime(CLOCK_MONOTONIC, &previous_time);
+    if (clock_status == -1) {
+        fprintf(stderr, "Error with initial previous clock time.\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Variables to hold voltage and temperature values
+    uint32_t voltage_value;
+    float temperature_value;
     while (run_flag) {
         // Polling for input commands (OFF, STOP, START, SCALE=F/C, PERIOD=seconds)
-        poll_io_handler();
+        //poll_io_handler();
         
-        // Sampling the temperature readings from temperature sensor
+        // Sampling the temperature readings from temperature sensor at given intervals
+        clock_status = clock_gettime(CLOCK_MONOTONIC, &current_time);
+        if (clock_status == -1) {
+            fprintf(stderr, "Error with current clock time.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (current_time.tv_sec > (previous_time.tv_sec + period_value)) {
+            // Reset previous sample time to the current sample time
+            previous_time.tv_sec = current_time.tv_sec;
+            
+            // Read in from the temperature sensor and convert to appropriate scale
+            voltage_value = mraa_aio_read(temperature);
+            temperature_value = getTemperature(voltage_value, temperature_scale);
+            
+            // Create the report (to STDOUT and log if specified)
+            createReport(temperature_value);
+        }
     }
     
     // Shutdown the button and temperature sensors
