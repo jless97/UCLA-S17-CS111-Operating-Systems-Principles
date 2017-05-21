@@ -300,7 +300,6 @@ poll_service_keyboard(void) {
             write(log_file, "SCALE=C\n", 8);
         }
     }
-    // TODO: edge case
     else if (buf[0] == 'P' && buf[1] == 'E' && buf[2] == 'R' && buf[3] == 'I' && buf[4] == 'O' && buf[5] == 'D' && buf[6] == '=' && isdigit(buf[7])) {
         int single_digit_flag = 1;
         int pow = 10;
