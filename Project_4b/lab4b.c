@@ -248,8 +248,6 @@ createReport(float temperature) {
     }
 }
 
-// Read from keyboard and write to the STDOUT (or logfile if specified)
-// TODO: still just a skeleton
 void
 poll_service_keyboard(void) {
     // Clear out buffer before each poll
