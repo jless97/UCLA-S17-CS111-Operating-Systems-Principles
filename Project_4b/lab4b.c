@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Includes ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-#i#include <mraa/gpio.h>
+#include <mraa/gpio.h>
 #include <mraa/aio.h>
 #include <mraa/i2c.h>
 #include <stdio.h>
@@ -302,22 +302,25 @@ poll_service_keyboard(void) {
     }
     // TODO: edge case
     else if (buf[0] == 'P' && buf[1] == 'E' && buf[2] == 'R' && buf[3] == 'I' && buf[4] == 'O' && buf[5] == 'D' && buf[6] == '=' && isdigit(buf[7])) {
-        int temp_flag = 1;
-        unsigned pow = 10;
-        unsigned temp = buf[7];
-        int i = 1;
+        int single_digit_flag = 1;
+        int pow = 10;
+        int new_period_value = buf[7] - 48;
+
+        // If the new period value is a single digit
         if (buf[8] == '\n')
-            temp_flag = 0;
-        while (temp_flag && isdigit(buf[7+i])) {
-            temp = temp * pow + buf[7+i];
-            printf("while: %d\n", temp);
-            pow *= 10;
+            single_digit_flag = 0;
+        
+        int i = 1;
+        // If new period value is multiple digits long
+        while (single_digit_flag && isdigit(buf[7 + i])) {
+            new_period_value = new_period_value * pow + buf[7 + i] - 48;
             i++;
             
         }
-        period_value = temp;
-        printf("temp:%d\n", temp);
-        printf("period value:%d\n", period_value);
+        if (log_flag == 1) {
+            dprintf(log_file, "PERIOD=%d\n", new_period_value);
+        }
+        period_value = new_period_value;
     }
     // Reset buffer before next poll
     memset(buf, 0, BUFFER_SIZE);
