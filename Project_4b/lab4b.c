@@ -48,7 +48,7 @@ char buf[BUFFER_SIZE];
 // Buffer for report entry
 char report_entry[ENTRY_BUFFER_SIZE];
 // Variable to store the current temperature scale value (i.e. Fahrenheit/Celsius)
-char temperature_scale;
+char temperature_scale = 'F';
 // Sampling rate (period) (default to 1 sample/sec)
 int period_value = 1;
 // File descriptor of the log file (if log option provided)
