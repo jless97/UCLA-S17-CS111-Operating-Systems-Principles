@@ -1,0 +1,41 @@
+Identification:
+    NAME: Jason Less
+    EMAIL: jaless1997@gmail.com
+    ID: 404640158
+
+Description of included files (Features):
+—————————————————————————————————————————
+(1) lab4b.c: This C program involves the use of the Intel Edison, along
+with the Grove kit temperature sensor and button. The program samples
+the voltage of the temperature sensor at different intervals (specified
+by the —-period option) and converts it to a temperature value (specified
+by the —- scale=F/C option). Moreover, the program prints out a report 
+(i.e. Timestamp and temperature), and writes the report entries to a log
+file (specified by the —-log option). In addition, the program reads in a 
+set of commands provided by the user via STDIN.
+
+(2) makecheck.sh: This file contains the smoke tests run for make check
+
+(3) Makefile: To build the program (lab4b), but also has three other 
+targets: check (to test the program), dist (to make the tarball), and clean 
+(to remove all generated programs and output).
+
+Testing Methodology:
+————————————————————
+The programs were tested using similar methods to previous projects. After
+each system call, I had prints to stderr in case any failed, with 
+descriptive methods. In addition, when debugging the code, I used printf()
+statements throughout to isolate and track down the problems. Finally, the
+sample.sh test script was used to make sure that the desired output was
+correct and in proper format. 
+
+Citations and Research:
+———————————————————————
+- The TA discussion section/slides, Piazza responses, and man pages for the
+  used APIs were especially useful for this project
+  - A good deal of my concerns (and questions) were answered with fairly 
+    good clarity from other students, and TA’s
+- The websites recommended for studying before beginning the project were
+  the main source I used when implementing this project.
+- The mraa() and grove kit temperature sensor documentation pages were used
+  to set up the program as well
