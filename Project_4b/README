@@ -16,7 +16,7 @@ set of commands provided by the user via STDIN.
 
 (2) makecheck.sh: This file contains the smoke tests run for make check
 
-(2) Makefile: To build the program (lab4b), but also has three other 
+(3) Makefile: To build the program (lab4b), but also has three other 
 targets: check (to test the program), dist (to make the tarball), and clean 
 (to remove all generated programs and output).
 
