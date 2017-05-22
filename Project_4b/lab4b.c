@@ -367,6 +367,24 @@ sample_temperature_poll_input_handler(void) {
             exit(EXIT_FAILURE);
         }
         else {
+            clock_status = clock_gettime(CLOCK_MONOTONIC, &current_time);
+            if (clock_status == -1) {
+                fprintf(stderr, "Error with current clock time.\n");
+                exit(EXIT_FAILURE);
+            }
+            if (current_time.tv_sec >= (previous_time.tv_sec + period_value)) {
+                // Reset previous sample time to the current sample time
+                previous_time.tv_sec = current_time.tv_sec;
+                
+                // Read in from the temperature sensor and convert to appropriate scale
+                voltage_value = mraa_aio_read(temperature);
+                temperature_value = getTemperature(voltage_value, temperature_scale);
+                
+                // Create the report (to STDOUT and log if specified)
+                if (report_flag == 1) {
+                    createReport(temperature_value);
+                }
+            }
             //Check for events on keyboard
             if (polled_fds[0].revents & POLLIN) {
                 poll_service_keyboard();
@@ -415,13 +433,8 @@ main (int argc, char *argv[])
     // Initialize the button and temperature sensors
     initSensors();
     
-    // Initialize time struct variable
-    int clock_status;
-    clock_status = clock_gettime(CLOCK_MONOTONIC, &previous_time);
-    if (clock_status == -1) {
-        fprintf(stderr, "Error with initial previous clock time.\n");
-        exit(EXIT_FAILURE);
-    }
+    // Initialize previous time struct variable
+    previous_time.tv_sec = -1;
     
     memset(report_entry, 0, ENTRY_BUFFER_SIZE);
     
