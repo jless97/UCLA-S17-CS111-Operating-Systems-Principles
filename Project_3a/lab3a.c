@@ -244,43 +244,43 @@ printBlockGroupCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 void
 getFreeBlock(void) {
-    // Block size for the free block bitmap
-    int block_size = super_block.s_log_block_size;
-    
-    // Total number of bits in bitmap
-    int bit_size = block_size * 8;
-    
-    // Variable to keep track of which block is free/allocated
-    int num_block = 0;
-    
-    // Variable to hold the bitmap block
-    long block_bitmap_buf;
+    // Variable to hold the bitmap block (reading 1 byte at a time)
+    uint8_t block_bitmap_buf;
     
     ssize_t nread;
-    int i, bitmask = 1;
+    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
     for (i = 0; i < num_groups; i++) {
-        nread = pread(image_fd, &block_bitmap_buf, block_size, block_group[i].g_block_bitmap);
-        if (nread < 0) {
-            fprintf(stderr, "Error reading free block bitmap info from image file.\n");
-            exit(EXIT_FAILURE);
-        }
-        // While there are still bits left to read, continue
-        while (bit_size != 0) {
-            // If the bit being checked is a 0, then the corresponding block is free
-            if ((block_bitmap_buf && bitmask) == 0) {
-                printFreeBlockCSVRecord(num_block);
+        j = 0;
+        while (j != block_size) {
+            block_bitmap_buf = 0;
+            nread = pread(image_fd, &block_bitmap_buf, 1, block_group[i].g_block_bitmap + j);
+            if (nread < 0) {
+                fprintf(stderr, "Error reading free block bitmap info from image file.\n");
+                exit(EXIT_FAILURE);
             }
-            // Shift the bits to the right by 1 to read next bit
-            block_bitmap_buf = block_bitmap_buf >> 1;
-            // Increment the block number
-            num_block++;
-            // Decrement the bit size as a bit was just read
-            bit_size--;
+            // No more bytes to read from bitmap
+            if (nread == 0) {
+                bit_size = 0;
+            }
+            else {
+                bit_size = 8;
+            }
+            while (bit_size != 0) {
+                // If the bit being checked is a 0, then the corresponding block is free
+                if ((block_bitmap_buf && bitmask) == 0) {
+                    printFreeBlockCSVRecord(num_block);
+                }
+                // Shift the bits to the right by 1 to read next bit
+                block_bitmap_buf = block_bitmap_buf >> 1;
+                // Increment the block number
+                num_block++;
+                // Decrement the bit size as a bit was just read
+                bit_size--;
+            }
+            j++;
         }
-        // Reset variables
-        bit_size = block_size * 8;
+        // Reset block number for next block group
         num_block = 0;
-        block_bitmap_buf = 0;
     }
 }
 
@@ -295,43 +295,43 @@ printFreeBlockCSVRecord(int num_block) {
 ////////////////////////////////////////////////////////////////////////////
 void
 getFreeInode(void) {
-    // Block size for the free block bitmap
-    int block_size = super_block.s_log_block_size;
-    
-    // Total number of bits in bitmap
-    int bit_size = block_size * 8;
-    
-    // Variable to keep track of which block is free/allocated
-    int num_block = 0;
-    
-    // Variable to hold the bitmap block
-    long block_bitmap_buf;
+    // Variable to hold the bitmap block (reading 1 byte at a time)
+    uint8_t inode_bitmap_buf;
     
     ssize_t nread;
-    int i, bitmask = 1;
+    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
     for (i = 0; i < num_groups; i++) {
-        nread = pread(image_fd, &block_bitmap_buf, block_size, block_group[i].g_inode_bitmap);
-        if (nread < 0) {
-            fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
-            exit(EXIT_FAILURE);
-        }
-        // While there are still bits left to read, continue
-        while (bit_size != 0) {
-            // If the bit being checked is a 0, then the corresponding block is free
-            if ((block_bitmap_buf && bitmask) == 0) {
-                printFreeInodeCSVRecord(num_block);
+        j = 0;
+        while (j != block_size) {
+            inode_bitmap_buf = 0;
+            nread = pread(image_fd, &inode_bitmap_buf, 1, block_group[i].g_inode_bitmap + j);
+            if (nread < 0) {
+                fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
+                exit(EXIT_FAILURE);
             }
-            // Shift the bits to the right by 1 to read next bit
-            block_bitmap_buf = block_bitmap_buf >> 1;
-            // Increment the block number
-            num_block++;
-            // Decrement the bit size as a bit was just read
-            bit_size--;
+            // No more bytes to read from bitmap
+            if (nread == 0) {
+                bit_size = 0;
+            }
+            else {
+                bit_size = 8;
+            }
+            while (bit_size != 0) {
+                // If the bit being checked is a 0, then the corresponding block is free
+                if ((inode_bitmap_buf && bitmask) == 0) {
+                    printFreeInodeCSVRecord(num_block);
+                }
+                // Shift the bits to the right by 1 to read next bit
+                inode_bitmap_buf = inode_bitmap_buf >> 1;
+                // Increment the block number
+                num_block++;
+                // Decrement the bit size as a bit was just read
+                bit_size--;
+            }
+            j++;
         }
-        // Reset variables
-        bit_size = block_size * 8;
+        // Reset block number for next block group
         num_block = 0;
-        block_bitmap_buf = 0;
     }
 }
 
