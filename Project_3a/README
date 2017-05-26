@@ -1,0 +1,34 @@
+Identification:
+    NAME: Jason Less
+    EMAIL: jaless1997@gmail.com
+    ID: 404640158
+
+    NAME: Yun Xu
+    EMAIL:
+    ID:
+
+Description of included files (Features):
+—————————————————————————————————————————
+(1) lab3a.c
+
+(2) Makefile: To build the program (lab3a), but also has two other 
+targets: dist (to make the tarball), and clean (to remove all 
+generated programs and output).
+
+Testing Methodology:
+————————————————————
+The programs were tested using similar methods to previous projects. After
+each system call, I had prints to stderr in case any failed, with 
+descriptive methods. In addition, when debugging the code, I used printf()
+statements throughout to isolate and track down the problems. Finally, the
+sample.sh test script was used to make sure that the desired output was
+correct and in proper format. 
+
+Citations and Research:
+———————————————————————
+- The TA discussion section/slides, Piazza responses, and man pages for the
+  used APIs were especially useful for this project
+  - A good deal of my concerns (and questions) were answered with fairly 
+    good clarity from other students, and TA’s
+- The websites recommended for studying before beginning the project were
+  the main source I used when implementing this project.
