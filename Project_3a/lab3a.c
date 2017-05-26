@@ -319,7 +319,7 @@ getFreeInode(void) {
         while (bit_size != 0) {
             // If the bit being checked is a 0, then the corresponding block is free
             if ((block_bitmap_buf && bitmask) == 0) {
-                printFreeBlockCSVRecord(num_block);
+                printFreeInodeCSVRecord(num_block);
             }
             // Shift the bits to the right by 1 to read next bit
             block_bitmap_buf = block_bitmap_buf >> 1;
