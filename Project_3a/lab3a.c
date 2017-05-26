@@ -312,7 +312,7 @@ getFreeInode(void) {
     for (i = 0; i < num_groups; i++) {
         nread = pread(image_fd, &block_bitmap_buf, block_size, block_group[i].g_inode_bitmap);
         if (nread < 0) {
-            fprintf(stderr, "Error reading free block bitmap info from image file.\n");
+            fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
             exit(EXIT_FAILURE);
         }
         // While there are still bits left to read, continue
