@@ -9,7 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Includes ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-#include "ext2_fs.h"
+#include <linux/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <time.h>
+#include "ext2_fs.h"
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Defines ////////////////////////////////////
@@ -273,7 +274,7 @@ printBlockGroupCSVRecord(void) {
 void
 getFreeBlock(void) {
     // Variable to hold the bitmap block (reading 1 byte at a time)
-    uint8_t block_bitmap_buf;
+    __u8 block_bitmap_buf;
     
     ssize_t nread;
     int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
@@ -333,7 +334,7 @@ getFreeInode(void) {
     }
     
     // Variable to hold the bitmap block (reading 1 byte at a time)
-    uint8_t inode_bitmap_buf;
+    __u8 inode_bitmap_buf;
     
     ssize_t nread;
     for (i = 0; i < num_groups; i++) {
