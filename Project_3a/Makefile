@@ -9,12 +9,12 @@
 # ID: 304635157
 
 CC = gcc
-CFLAGS = -lm -g
+CFLAGS = -g
 AUX = Makefile README lab3a.c 
 TARBALL_NAME = lab3a-404640158.tar.gz
 
 default:
-	@$(CC) $(CFLAGS) -o lab3a lab3a.c
+	@$(CC) $(CFLAGS) -o lab3a lab3a.c -lm
 
 clean:
 	@rm -f lab3a *.tar.gz *.txt
