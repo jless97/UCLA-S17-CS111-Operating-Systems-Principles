@@ -463,7 +463,7 @@ void
 printInodeSummaryCSVRecord(void) {
     // Print to STDOUT inode summary CSV record
     int i, j, k, mode, bitmask;
-    long file_size;
+    //long file_size;
     char file_type;
     time_t create_time, mod_time, access_time;
     struct tm *create_gtime, *mod_gtime, *access_gtime;
@@ -534,10 +534,11 @@ printInodeSummaryCSVRecord(void) {
                 snprintf(atime, 18, "%02d/%02d/%02d %02d:%02d:%02d", create_gtime->tm_mon, create_gtime->tm_mday, create_gtime->tm_year, create_gtime->tm_hour, create_gtime->tm_min, create_gtime->tm_sec);
                 
                 // File size
-                file_size = (inode_table[i][j].i_dir_acl << 32) | inode_table[i][j].i_size;
-                
+                //file_size = (inode_table[i][j].i_dir_acl << 32) | inode_table[i][j].i_size;
+                file_size = inode_table[i][j].i_size;
+
                 // Print CSV record
-                fprintf(stdout, "%s,%d,%c,%o,%d,%d,%d,%s,%s,%s,%ld,%d", "INODE", inode_array[i][j], file_type, mode, inode_table[i][j].i_uid, inode_table[i][j].i_gid, inode_table[i][j].i_links_count, ctime, mtime, atime, file_size, inode_table[i][j].i_blocks);
+                fprintf(stdout, "%s,%d,%c,%o,%d,%d,%d,%s,%s,%s,%d,%d", "INODE", inode_array[i][j], file_type, mode, inode_table[i][j].i_uid, inode_table[i][j].i_gid, inode_table[i][j].i_links_count, ctime, mtime, atime, file_size, inode_table[i][j].i_blocks);
                 for (k = 0; k < EXT2_N_BLOCKS; k++) {
                     fprintf(stdout, ",%d", inode_table[i][j].i_block[k]);
                     if (k == (EXT2_N_BLOCKS - 1)) {
