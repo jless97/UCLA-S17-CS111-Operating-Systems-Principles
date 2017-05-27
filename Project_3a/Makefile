@@ -5,8 +5,8 @@
 # ID: 404-640-158
 
 # NAME: Yun Xu
-# EMAIL: 
-# ID:
+# EMAIL: x_one_u@yahoo.com
+# ID: 304635157
 
 CC = gcc
 CFLAGS = -g
