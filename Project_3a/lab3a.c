@@ -290,7 +290,7 @@ getFreeBlock(void) {
     __u8 block_bitmap_buf;
     
     ssize_t nread;
-    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
+    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 1, bitmask = 1;
 
     /* Debugging */
     //printf("Block size: %d\n", block_size);
@@ -323,7 +323,7 @@ getFreeBlock(void) {
             }
             while (bit_size != 0) {
                 // If the bit being checked is a 0, then the corresponding block is free
-                if ((block_bitmap_buf && bitmask) == 0) {
+                if ((block_bitmap_buf & bitmask) == 0) {
                     printFreeBlockCSVRecord(num_block);
                 }
                 // Shift the bits to the right by 1 to read next bit
