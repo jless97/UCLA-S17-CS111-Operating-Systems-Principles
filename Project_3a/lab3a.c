@@ -173,6 +173,9 @@ getSuperBlock(struct ext2_super_block *block) {
         exit(EXIT_FAILURE);
     }
     
+    /* Debugging */
+    //memcpy(&block->s_rev_level, super_block_buf + 76, 4);
+
     // Total number of blocks
     memcpy(&block->s_blocks_count, super_block_buf + 4, 4);
     
@@ -214,7 +217,7 @@ getBlockGroup(void) {
     //printf("Blocks: %d\n", super_block.s_blocks_count);
     //printf("Blocks per group: %d\n", super_block.s_blocks_per_group);
     //printf("Number of groups: %d\n", num_groups);
-
+    //printf("Revision number: %d\n", super_block.s_rev_level);
 
     // If there are some leftover blocks for last block group
     int leftover_blocks = super_block.s_blocks_count % super_block.s_blocks_per_group;
@@ -525,7 +528,7 @@ void
 printInodeSummaryCSVRecord(void) {
     // Print to STDOUT inode summary CSV record
     int i, j, k, file_mode, mode, bitmask;
-    //long file_size;
+    long int file_size;
     char file_type;
     time_t create_time, mod_time, access_time;
     struct tm *create_gtime, *mod_gtime, *access_gtime;
@@ -601,10 +604,11 @@ printInodeSummaryCSVRecord(void) {
                 snprintf(atime, 18, "%02d/%02d/%02d %02d:%02d:%02d", create_gtime->tm_mon, create_gtime->tm_mday, create_gtime->tm_year, create_gtime->tm_hour, create_gtime->tm_min, create_gtime->tm_sec);
                 
                 // File size
-                //file_size = (inode_table[i][j].i_dir_acl << 32) | inode_table[i][j].i_size;
+                file_size = inode_table[i][j].i_dir_acl;
+                file_size = (file_size << 32) | inode_table[i][j].i_size;
 
                 // Print CSV record
-                fprintf(stdout, "%s,%d,%c,%o,%d,%d,%d,%s,%s,%s,%d,%d", "INODE", j + 1, file_type, mode, inode_table[i][j].i_uid, inode_table[i][j].i_gid, inode_table[i][j].i_links_count, ctime, mtime, atime, inode_table[i][j].i_size, inode_table[i][j].i_blocks);
+                fprintf(stdout, "%s,%d,%c,%o,%d,%d,%d,%s,%s,%s,%li,%d", "INODE", j + 1, file_type, mode, inode_table[i][j].i_uid, inode_table[i][j].i_gid, inode_table[i][j].i_links_count, ctime, mtime, atime, file_size, inode_table[i][j].i_blocks);
                 for (k = 0; k < EXT2_N_BLOCKS; k++) {
                     fprintf(stdout, ",%d", inode_table[i][j].i_block[k]);
                     if (k == (EXT2_N_BLOCKS - 1)) {
