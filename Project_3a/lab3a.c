@@ -350,21 +350,25 @@ printFreeBlockCSVRecord(int num_block) {
 ////////////////////////////////////////////////////////////////////////////
 void
 getFreeInode(void) {
-    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 1, bitmask = 1;
+    int i, j, k, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 1, bitmask = 1;
     
     // Initialize the inode free/allocated array
     num_inodes = super_block.s_inodes_per_group;
     inode_array = (int **) malloc(sizeof(int *) * num_groups);
     for (i = 0; i < num_groups; i++) {
-        inode_array[i] = (int *) malloc(sizeof(int) * num_inodes);
+        inode_array[i] = (int *) malloc(sizeof(int) * num_inodes + 1);
     }
-    
+
+    /* Debugging */
+    printf("Number of inodes: %d\n", num_inodes);
+
     // Variable to hold the bitmap block (reading 1 byte at a time)
     __u8 inode_bitmap_buf;
     
     ssize_t nread;
     for (i = 0; i < num_groups; i++) {
         j = 0;
+        k = 0;
         while (j != num_inodes) {
             inode_bitmap_buf = 0;
             nread = pread(image_fd, &inode_bitmap_buf, 1, (block_group[i].g_inode_bitmap * block_size) + j);
@@ -388,13 +392,13 @@ getFreeInode(void) {
                 // If the bit being checked is a 0, then the corresponding block is free
                 if ((inode_bitmap_buf & bitmask) == 0) {
                     // Set portion of inode array to note that inode block is free
-                    inode_array[i][j] = 0;
+                    inode_array[i][k] = 0;
                     
                     printFreeInodeCSVRecord(num_block);
                 }
                 // Set portion of inode array to note that inode block is allocated
                 else {
-                    inode_array[i][j] = 1;
+                    inode_array[i][k] = 1;
                 }
                 // Shift the bits to the right by 1 to read next bit
                 inode_bitmap_buf = inode_bitmap_buf >> 1;
@@ -402,12 +406,22 @@ getFreeInode(void) {
                 num_block++;
                 // Decrement the bit size as a bit was just read
                 bit_size--;
+                // Increment the position within the inode_array        		
+                k++;
             }
             j++;
         }
         // Reset block number for next block group
         num_block = 0;
     }
+
+    /* Debugging */
+    //for (i = 0; i < num_groups; i++) {
+    //	for (k = 0; k < num_inodes; k++) {
+    //		printf("Inode Group: %d, Inode Number: %d => %d\n", i, k + 1, inode_array[i][k]);
+    //
+    //	}
+    //}
 }
 
 void
@@ -440,13 +454,17 @@ getInodeSummary(void) {
                 continue;
             }
             else if (inode_array[i][j] == 1) {
+            	/* Debugging */
+            	printf("Inode Group: %d, Inode Number: %d\n", i, j + 1);
+
+
                 // For each group, read in a single inode at a time
-                nread = pread(image_fd, &inode_buf, INODE_BUFFER_SIZE, block_group[i].g_inode_table + (j * INODE_SIZE));
-                if (nread < 0) {
+                nread = pread(image_fd, &inode_buf, INODE_BUFFER_SIZE, (block_group[i].g_inode_table * block_size) + (j * INODE_SIZE));
+                if (nread < 0) { 
                     fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
                     exit(EXIT_FAILURE);
-                }
-                
+                }                
+
                 // Inode ID number (to be analyzed in printInodeSummaryCSVRecord)
                 // Stored in inode_array
                 
@@ -478,6 +496,17 @@ getInodeSummary(void) {
                 // Number of blocks
                 memcpy(&inode_table[i][j].i_blocks, inode_buf + 28, 4);
                 
+                /* Debugging */
+                printf("Inode file type and mode: %d\n", inode_table[i][j].i_mode);
+                printf("Inode Owner: %d\n", inode_table[i][j].i_uid);
+                printf("Inode Group: %d\n", inode_table[i][j].i_gid);
+                printf("Inode Link Count: %d\n", inode_table[i][j].i_links_count);
+                printf("Inode Creation Time: %d\n", inode_table[i][j].i_ctime);
+                printf("Inode Modification Time: %d\n", inode_table[i][j].i_mtime);
+                printf("Inode Access Time: %d\n", inode_table[i][j].i_atime);
+                printf("Inode Size: %d\n", inode_table[i][j].i_size);
+                printf("Inode Blocks: %d\n", inode_table[i][j].i_blocks);
+
                 // Direct blocks
                 // Indirect block
                 // Doubly indirect block
@@ -505,9 +534,13 @@ printInodeSummaryCSVRecord(void) {
             // If free, skip
             if (inode_array[i][j] == 0) {
                 continue;
-            }
+            } 
             // If allocated, print
             else if (inode_array[i][j] == 1) {
+            	// Check to see if nonzero mode
+            	if ((inode_table[i][j].i_mode == 0) || (inode_table[i][j].i_links_count == 0))
+            		continue;
+
                 // Get file type
                 bitmask = 0xF000;
                 mode = inode_table[i][j].i_mode & bitmask;
@@ -568,7 +601,7 @@ printInodeSummaryCSVRecord(void) {
                 //file_size = (inode_table[i][j].i_dir_acl << 32) | inode_table[i][j].i_size;
 
                 // Print CSV record
-                fprintf(stdout, "%s,%d,%c,%o,%d,%d,%d,%s,%s,%s,%d,%d", "INODE", inode_array[i][j], file_type, mode, inode_table[i][j].i_uid, inode_table[i][j].i_gid, inode_table[i][j].i_links_count, ctime, mtime, atime, inode_table[i][j].i_size, inode_table[i][j].i_blocks);
+                fprintf(stdout, "%s,%d,%c,%o,%d,%d,%d,%s,%s,%s,%d,%d", "INODE", j + 1, file_type, mode, inode_table[i][j].i_uid, inode_table[i][j].i_gid, inode_table[i][j].i_links_count, ctime, mtime, atime, inode_table[i][j].i_size, inode_table[i][j].i_blocks);
                 for (k = 0; k < EXT2_N_BLOCKS; k++) {
                     fprintf(stdout, ",%d", inode_table[i][j].i_block[k]);
                     if (k == (EXT2_N_BLOCKS - 1)) {
