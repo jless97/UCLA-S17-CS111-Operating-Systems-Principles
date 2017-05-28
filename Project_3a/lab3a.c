@@ -211,6 +211,7 @@ getBlockGroup(void) {
     // Get the number of block groups
     num_groups = (int)ceil((double) super_block.s_blocks_count / (double) super_block.s_blocks_per_group);
 
+    /* Debugging */
     printf("Blocks: %d\n", super_block.s_blocks_count);
     printf("Blocks per group: %d\n", super_block.s_blocks_per_group);
     printf("Number of groups: %d\n", num_groups);
@@ -251,10 +252,14 @@ getBlockGroup(void) {
         
         // Total number of free blocks
         memcpy(&block_group[i].g_free_blocks_count, descriptor_table_buf + 12, 2);
-        printf("Number of free blocks: %d\n", block_group[i].g_free_blocks_count);
+
         // Total number of free inodes
         memcpy(&block_group[i].g_free_inodes_count, descriptor_table_buf + 14, 2);
+
+        /* Debugging */
+        printf("Number of free blocks: %d\n", block_group[i].g_free_blocks_count);
         printf("Number of free inodes: %d\n", block_group[i].g_free_inodes_count);
+
         // Block number of free block bitmap
         memcpy(&block_group[i].g_block_bitmap, descriptor_table_buf, 4);
         
@@ -278,7 +283,7 @@ printBlockGroupCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Free Block Entries /////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-/*
+
 void
 getFreeBlock(void) {
     // Variable to hold the bitmap block (reading 1 byte at a time)
@@ -286,11 +291,25 @@ getFreeBlock(void) {
     
     ssize_t nread;
     int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
+
+    /* Debugging */
+    //printf("Block size: %d\n", block_size);
+    // Block size: 1024
+
     for (i = 0; i < num_groups; i++) {
         j = 0;
+        // Loop through block bitmap (1024 bytes)
         while (j != block_size) {
             block_bitmap_buf = 0;
-            nread = pread(image_fd, &block_bitmap_buf, 1, block_group[i].g_block_bitmap + j);
+            // Read in a byte at a time (8 bits: 8 corresponding data blocks)
+            // Each block bitmap is located at block number: block_group[i].g_block_bitmap
+            // This is just the block number, so multiply by block size (1024) to get to block bitmap
+            // Now: since we read in a byte a time, increment the offset by 1 from current location each time (i.e +j)
+            nread = pread(image_fd, &block_bitmap_buf, 1, (block_group[i].g_block_bitmap * block_size) + j);
+            /* Debugging */
+            printf("Block buf contains: %d\n", block_bitmap_buf);
+            printf("Block bitmap location: %d\n", block_group[i].g_block_bitmap * block_size);
+
             if (nread < 0) {
                 fprintf(stderr, "Error reading free block bitmap info from image file.\n");
                 exit(EXIT_FAILURE);
@@ -330,6 +349,7 @@ printFreeBlockCSVRecord(int num_block) {
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Free Inode Entries /////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+/*
 void
 getFreeInode(void) {
     int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
@@ -595,10 +615,11 @@ main (int argc, char *argv[])
     getBlockGroup();
     printBlockGroupCSVRecord();
     
-    /*
+    
     // Get free block information and print it to STDOUT (handled in getFreeBlock())
     getFreeBlock();
     
+    /*
     // Get free inode information and print it to STDOUT
     getFreeInode();
     printInodeSummaryCSVRecord();
