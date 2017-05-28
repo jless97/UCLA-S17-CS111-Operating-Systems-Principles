@@ -306,6 +306,7 @@ getFreeBlock(void) {
             // This is just the block number, so multiply by block size (1024) to get to block bitmap
             // Now: since we read in a byte a time, increment the offset by 1 from current location each time (i.e +j)
             nread = pread(image_fd, &block_bitmap_buf, 1, (block_group[i].g_block_bitmap * block_size) + j);
+            
             /* Debugging */
             printf("Block buf contains: %d\n", block_bitmap_buf);
             printf("Block bitmap location: %d\n", (block_group[i].g_block_bitmap * block_size) + j);
@@ -349,10 +350,10 @@ printFreeBlockCSVRecord(int num_block) {
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Free Inode Entries /////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-/*
+
 void
 getFreeInode(void) {
-    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 0, bitmask = 1;
+    int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 1, bitmask = 1;
     
     // Initialize the inode free/allocated array
     num_inodes = super_block.s_inodes_per_group;
@@ -369,11 +370,16 @@ getFreeInode(void) {
         j = 0;
         while (j != num_inodes) {
             inode_bitmap_buf = 0;
-            nread = pread(image_fd, &inode_bitmap_buf, 1, block_group[i].g_inode_bitmap + j);
+            nread = pread(image_fd, &inode_bitmap_buf, 1, (block_group[i].g_inode_bitmap * block_size) + j);
             if (nread < 0) {
                 fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
                 exit(EXIT_FAILURE);
             }
+
+            /* Debugging */
+            printf("Inode buf contains: %d\n", inode_bitmap_buf);
+            printf("Inode bitmap location: %d\n", (block_group[i].g_inode_bitmap * block_size) + j);
+
             // No more bytes to read from bitmap
             if (nread == 0) {
                 bit_size = 0;
@@ -383,7 +389,7 @@ getFreeInode(void) {
             }
             while (bit_size != 0) {
                 // If the bit being checked is a 0, then the corresponding block is free
-                if ((inode_bitmap_buf && bitmask) == 0) {
+                if ((inode_bitmap_buf & bitmask) == 0) {
                     // Set portion of inode array to note that inode block is free
                     inode_array[i][j] = 0;
                     
@@ -416,6 +422,7 @@ printFreeInodeCSVRecord(int num_block) {
 ////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// Inode Summary ////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+/*
 void
 getInodeSummary(void) {
     int i, j, k, block_size = super_block.s_log_block_size;
@@ -619,11 +626,11 @@ main (int argc, char *argv[])
     // Get free block information and print it to STDOUT (handled in getFreeBlock())
     getFreeBlock();
     
-    /*
+    
     // Get free inode information and print it to STDOUT
     getFreeInode();
-    printInodeSummaryCSVRecord();
     
+    /*
     // Get inode summary information and print it to STDOUT
     getInodeSummary();
     printInodeSummaryCSVRecord();
