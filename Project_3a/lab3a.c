@@ -595,7 +595,7 @@ printInodeAndDirectoryCSVRecord(void) {
                 		while (offset < block_size) {
                 			nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size) + offset);
                				if (nread < 0) { 
-                    			fprintf(stderr, "Error reading directory info from image file.\n");
+                    			fprintf(stderr, "Error reading directory irynfo from image file.\n");
                     			exit(EXIT_FAILURE);
                				}   
 
@@ -604,14 +604,15 @@ printInodeAndDirectoryCSVRecord(void) {
                					break;
 
                             // TODO: fix string formatting (right now, temporary fix)
-               				char temp[255];
-               				memset(temp, 0, 255);
-               				strncat(&temp[0], "'", 1);
-               				strncat(temp, directory.name, strlen(directory.name));
-               				int var = strlen(directory.name);
-               				strncat(temp, "'", 1);
+                            // Add 1 for null-terminating character
+                            // Add 2 for single quotes
+                            char file_name[EXT2_NAME_LEN + 1 + 2];
+                            file_name[0] = '\'';
+                            memcpy(file_name + 1, directory.name, directory.name_len);
+                            file_name[directory.name_len+1] = '\'';
+                            file_name[directory.name_len+2] = '\0';
 
-               				fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, temp);
+               				fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, file_name);
 
                             // Increment the offset to the next directory entry
                 			offset += directory.rec_len;
