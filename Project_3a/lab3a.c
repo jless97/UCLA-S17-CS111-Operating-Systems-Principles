@@ -27,7 +27,7 @@
 // Super block size
 #define SUPER_BLOCK_SIZE 1024
 // Super block structure size
-#define SUPER_BLOCK_BUFFER_SIZE 128
+#define SUPER_BLOCK_BUFFER_SIZE 1024
 // Block group descriptor table size
 #define DESCRIPTOR_TABLE_SIZE 32
 // Block group descriptor table buffer size
