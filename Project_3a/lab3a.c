@@ -308,7 +308,7 @@ getFreeBlock(void) {
             nread = pread(image_fd, &block_bitmap_buf, 1, (block_group[i].g_block_bitmap * block_size) + j);
             /* Debugging */
             printf("Block buf contains: %d\n", block_bitmap_buf);
-            printf("Block bitmap location: %d\n", block_group[i].g_block_bitmap * block_size);
+            printf("Block bitmap location: %d\n", (block_group[i].g_block_bitmap * block_size) + j;
 
             if (nread < 0) {
                 fprintf(stderr, "Error reading free block bitmap info from image file.\n");
