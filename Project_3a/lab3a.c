@@ -522,7 +522,7 @@ getInodeSummary(void) {
 void
 printInodeSummaryCSVRecord(void) {
     // Print to STDOUT inode summary CSV record
-    int i, j, k, mode, bitmask;
+    int i, j, k, file_mode, mode, bitmask;
     //long file_size;
     char file_type;
     time_t create_time, mod_time, access_time;
@@ -543,7 +543,8 @@ printInodeSummaryCSVRecord(void) {
 
                 // Get file type
                 bitmask = 0xF000;
-                mode = inode_table[i][j].i_mode & bitmask;
+                mode = inode_table[i][j].i_mode;
+                file_mode = mode & bitmask;
                 if (mode == EXT2_S_IFREG) {
                     file_type = 'f';
                 }
@@ -560,7 +561,7 @@ printInodeSummaryCSVRecord(void) {
                 // Get file permissions mode
                 bitmask = 0x0FFF;
                 mode = mode & bitmask;
-                
+
                 // Get creation time
                 create_time = inode_table[i][j].i_ctime;
                 create_gtime = gmtime(&create_time);
