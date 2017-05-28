@@ -26,7 +26,7 @@
 #define SUPER_BLOCK_OFFSET 1024
 // Super block size
 #define SUPER_BLOCK_SIZE 1024
-// Super block csv fields: only concerned with first 100 or so bytes
+// Super block structure size
 #define SUPER_BLOCK_BUFFER_SIZE 128
 // Block group descriptor table size
 #define DESCRIPTOR_TABLE_SIZE 32
@@ -193,7 +193,7 @@ getSuperBlock(struct ext2_super_block *block) {
     memcpy(&block->s_inodes_per_group, super_block_buf + 40, 4);
     
     // Index to first non-reserved inode
-    memcpy(&block->s_first_ino, super_block_buf + 88, 4);
+    memcpy(&block->s_first_ino, super_block_buf + 84, 4);
 }
 
 void
@@ -205,6 +205,7 @@ printSuperBlockCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Block Group ////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+/*
 void
 getBlockGroup(void) {
     // Get the number of block groups
@@ -568,7 +569,7 @@ printIndirectCSVRecord(void) {
     // Print to STDOUT indirect block references CSV record
     
 }
-
+*/
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Main Function //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -582,6 +583,7 @@ main (int argc, char *argv[])
     getSuperBlock(&super_block);
     printSuperBlockCSVRecord();
     
+    /*
     // Get block group information and print it to STDOUT
     getBlockGroup();
     printBlockGroupCSVRecord();
@@ -596,7 +598,8 @@ main (int argc, char *argv[])
     // Get inode summary information and print it to STDOUT
     getInodeSummary();
     printInodeSummaryCSVRecord();
-    
+    */
+
     // If success
     exit(EXIT_SUCCESS);
 }
