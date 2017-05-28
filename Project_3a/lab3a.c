@@ -360,7 +360,7 @@ getFreeInode(void) {
     }
 
     /* Debugging */
-    printf("Number of inodes: %d\n", num_inodes);
+    //printf("Number of inodes: %d\n", num_inodes);
 
     // Variable to hold the bitmap block (reading 1 byte at a time)
     __u8 inode_bitmap_buf;
@@ -455,7 +455,7 @@ getInodeSummary(void) {
             }
             else if (inode_array[i][j] == 1) {
             	/* Debugging */
-            	printf("Inode Group: %d, Inode Number: %d\n", i, j + 1);
+            	//printf("Inode Group: %d, Inode Number: %d\n", i, j + 1);
 
 
                 // For each group, read in a single inode at a time
@@ -497,6 +497,7 @@ getInodeSummary(void) {
                 memcpy(&inode_table[i][j].i_blocks, inode_buf + 28, 4);
                 
                 /* Debugging */
+                /*
                 printf("Inode file type and mode: %d\n", inode_table[i][j].i_mode);
                 printf("Inode Owner: %d\n", inode_table[i][j].i_uid);
                 printf("Inode Group: %d\n", inode_table[i][j].i_gid);
@@ -506,6 +507,7 @@ getInodeSummary(void) {
                 printf("Inode Access Time: %d\n", inode_table[i][j].i_atime);
                 printf("Inode Size: %d\n", inode_table[i][j].i_size);
                 printf("Inode Blocks: %d\n", inode_table[i][j].i_blocks);
+				*/
 
                 // Direct blocks
                 // Indirect block
@@ -545,13 +547,13 @@ printInodeSummaryCSVRecord(void) {
                 bitmask = 0xF000;
                 mode = inode_table[i][j].i_mode;
                 file_mode = mode & bitmask;
-                if (mode == EXT2_S_IFREG) {
+                if (file_mode == EXT2_S_IFREG) {
                     file_type = 'f';
                 }
-                else if (mode == EXT2_S_IFDIR) {
+                else if (file_mode == EXT2_S_IFDIR) {
                     file_type = 'd';
                 }
-                else if (mode == EXT2_S_IFLNK) {
+                else if (file_mode == EXT2_S_IFLNK) {
                     file_type = 's';
                 }
                 else {
