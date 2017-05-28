@@ -205,15 +205,20 @@ printSuperBlockCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////// Block Group ////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
-/*
+
 void
 getBlockGroup(void) {
     // Get the number of block groups
     num_groups = (int)ceil((double) super_block.s_blocks_count / (double) super_block.s_blocks_per_group);
-    
+
+    printf("Blocks: %d\n", super_block.s_blocks_count);
+    printf("Blocks per group: %d\n", super_block.s_blocks_per_group);
+    printf("Number of groups: %d\n", num_groups);
+
+
     // If there are some leftover blocks for last block group
     int leftover_blocks = super_block.s_blocks_count % super_block.s_blocks_per_group;
-    
+
     // Create block group array
     block_group = (struct p3_block_group *) malloc(sizeof(struct p3_block_group) * num_groups);
     
@@ -223,7 +228,7 @@ getBlockGroup(void) {
         // Initialize the buffer to read in for descriptor table
         memset(descriptor_table_buf, 0, DESCRIPTOR_TABLE_BUFFER_SIZE);
         
-        nread = pread(image_fd, descriptor_table_buf, DESCRIPTOR_TABLE_BUFFER_SIZE, SUPER_BLOCK_SIZE + (i * DESCRIPTOR_TABLE_SIZE));
+        nread = pread(image_fd, descriptor_table_buf, DESCRIPTOR_TABLE_BUFFER_SIZE, SUPER_BLOCK_SIZE + SUPER_BLOCK_OFFSET + (i * DESCRIPTOR_TABLE_SIZE));
         if (nread < 0) {
             fprintf(stderr, "Error reading block group descriptor table info from image file.\n");
             exit(EXIT_FAILURE);
@@ -233,30 +238,31 @@ getBlockGroup(void) {
         block_group[i].group_id = i;
         
         // Total number of blocks (if there are leftover blocks, last group has the leftover)
-        if ((i = last_group) && (leftover_blocks == 0)) {
-            block_group[i].g_blocks_count = super_block.s_blocks_per_group;
+        if (leftover_blocks == 0) {
+        	block_group[i].g_blocks_count = super_block.s_blocks_per_group;
         }
-        else {
-            block_group[i].g_blocks_count = leftover_blocks;
+        else if ((leftover_blocks != 0) && (i == last_group)) {
+        	block_group[i].g_blocks_count = leftover_blocks;
         }
+
         
         // Total number of inodes
         block_group[i].g_inodes_count = super_block.s_inodes_per_group;
         
         // Total number of free blocks
-        memcpy(&block_group[i].g_free_blocks_count, descriptor_table_buf, 4);
-        
+        memcpy(&block_group[i].g_free_blocks_count, descriptor_table_buf + 12, 2);
+        printf("Number of free blocks: %d\n", block_group[i].g_free_blocks_count);
         // Total number of free inodes
-        memcpy(&block_group[i].g_free_inodes_count, descriptor_table_buf + 4, 4);
-        
+        memcpy(&block_group[i].g_free_inodes_count, descriptor_table_buf + 14, 2);
+        printf("Number of free inodes: %d\n", block_group[i].g_free_inodes_count);
         // Block number of free block bitmap
-        memcpy(&block_group[i].g_block_bitmap, descriptor_table_buf + 8, 2);
+        memcpy(&block_group[i].g_block_bitmap, descriptor_table_buf, 4);
         
         // Block number of free inode bitmap
-        memcpy(&block_group[i].g_inode_bitmap, descriptor_table_buf + 12, 2);
+        memcpy(&block_group[i].g_inode_bitmap, descriptor_table_buf + 4, 4);
         
         // Block number of first block of inodes
-        memcpy(&block_group[i].g_inode_table, descriptor_table_buf + 14, 4);
+        memcpy(&block_group[i].g_inode_table, descriptor_table_buf + 8, 4);
     }
 }
 
@@ -272,6 +278,7 @@ printBlockGroupCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Free Block Entries /////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+/*
 void
 getFreeBlock(void) {
     // Variable to hold the bitmap block (reading 1 byte at a time)
@@ -583,11 +590,12 @@ main (int argc, char *argv[])
     getSuperBlock(&super_block);
     printSuperBlockCSVRecord();
     
-    /*
+    
     // Get block group information and print it to STDOUT
     getBlockGroup();
     printBlockGroupCSVRecord();
     
+    /*
     // Get free block information and print it to STDOUT (handled in getFreeBlock())
     getFreeBlock();
     
