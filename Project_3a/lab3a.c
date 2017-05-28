@@ -26,21 +26,16 @@
 #define SUPER_BLOCK_OFFSET 1024
 // Super block size
 #define SUPER_BLOCK_SIZE 1024
-// Super block structure size
-#define SUPER_BLOCK_BUFFER_SIZE 1024
 // Block group descriptor table size
 #define DESCRIPTOR_TABLE_SIZE 32
-// Block group descriptor table buffer size
-#define DESCRIPTOR_TABLE_BUFFER_SIZE 32
 // Size of inode
 #define INODE_SIZE 128
-// Inode table buffer size
-#define INODE_BUFFER_SIZE 128
 
 // File type specifiers
 #define EXT2_S_IFREG 32768
 #define EXT2_S_IFDIR 16384
 #define EXT2_S_IFLNK 40960
+
 // Mode type specifiers
 #define EXT2_S_IRUSR 256
 #define EXT2_S_IWUSR 128
@@ -66,24 +61,21 @@
 // File descriptor for the image file provided
 int image_fd;
 // Buffer to acquire information for the super block
-char super_block_buf[SUPER_BLOCK_BUFFER_SIZE];
+char super_block_buf[SUPER_BLOCK_SIZE];
 // Buffer to acquire information for the block group descriptor table
-char descriptor_table_buf[DESCRIPTOR_TABLE_BUFFER_SIZE];
-// Buffer to acquire information for the inodes
-char inode_buf[INODE_BUFFER_SIZE];
+char descriptor_table_buf[DESCRIPTOR_TABLE_SIZE];
 // Number of block groups
 int num_groups;
 // Number of inodes per group
 int num_inodes;
 
 /* Flags */
-
+// When checking to see if inode is a directory
+int directory_flag = 0;
 
 /* Structs */
 // Super block struct to store the super block information
 struct ext2_super_block super_block;
-// Block group descriptor table struct
-struct ext2_group_desc group_descriptor_table;
 // Block group struct format
 struct p3_block_group {
     __u32 group_id;             /* Block group number */
@@ -101,7 +93,7 @@ struct p3_block_group *block_group;
 struct ext2_inode **inode_table;
 
 /* Arrays */
-// Array to keep of which inodes are allocated/free for each group
+// Array to keep track of which inodes are allocated/free for each group
 int **inode_array;
 
 ////////////////////////////////////////////////////////////////////////////
@@ -128,13 +120,9 @@ void getFreeInode();
 // Print free inode entrires csv record
 void printFreeInodeCSVRecord(int num_block);
 // Acquire inode summary
-void getInodeSummary(void);
+void getInodeAndDirectory(void);
 // Print inode summary csv record
-void printInodeSummaryCSVRecord(void);
-// Acquire directory entries
-
-// Print directory entries csv record
-void printDirectoryCSVRecord(void);
+void printInodeAndDirectoryCSVRecord(void);
 
 // Acquire indirect block references
 
@@ -149,6 +137,7 @@ print_usage(void) {
     printf("Usage: ./lab3a [Image File]\n");
 }
 
+//TODO: fix exit codes for parser
 void
 parser(int argc, char * argv[]) {
     if (argc != 2) {
@@ -169,9 +158,9 @@ parser(int argc, char * argv[]) {
 void
 getSuperBlock(struct ext2_super_block *block) {
     // Initialize the buffer to read in for super block
-    memset(super_block_buf, 0, SUPER_BLOCK_BUFFER_SIZE);
+    memset(super_block_buf, 0, SUPER_BLOCK_SIZE);
     
-    ssize_t nread = pread(image_fd, super_block_buf, SUPER_BLOCK_BUFFER_SIZE, SUPER_BLOCK_OFFSET);
+    ssize_t nread = pread(image_fd, super_block_buf, SUPER_BLOCK_SIZE, SUPER_BLOCK_OFFSET);
     if (nread < 0) {
         fprintf(stderr, "Error reading super block info from image file.\n");
         exit(EXIT_FAILURE);
@@ -233,9 +222,9 @@ getBlockGroup(void) {
     int i, last_group = num_groups - 1;
     for (i = 0; i < num_groups; i++) {
         // Initialize the buffer to read in for descriptor table
-        memset(descriptor_table_buf, 0, DESCRIPTOR_TABLE_BUFFER_SIZE);
+        memset(descriptor_table_buf, 0, DESCRIPTOR_TABLE_SIZE);
         
-        nread = pread(image_fd, descriptor_table_buf, DESCRIPTOR_TABLE_BUFFER_SIZE, SUPER_BLOCK_SIZE + SUPER_BLOCK_OFFSET + (i * DESCRIPTOR_TABLE_SIZE));
+        nread = pread(image_fd, descriptor_table_buf, DESCRIPTOR_TABLE_SIZE, SUPER_BLOCK_SIZE + SUPER_BLOCK_OFFSET + (i * DESCRIPTOR_TABLE_SIZE));
         if (nread < 0) {
             fprintf(stderr, "Error reading block group descriptor table info from image file.\n");
             exit(EXIT_FAILURE);
@@ -363,7 +352,7 @@ getFreeInode(void) {
     num_inodes = super_block.s_inodes_per_group;
     inode_array = (int **) malloc(sizeof(int *) * num_groups);
     for (i = 0; i < num_groups; i++) {
-        inode_array[i] = (int *) malloc(sizeof(int) * num_inodes + 1);
+        inode_array[i] = (int *) malloc(sizeof(int) * num_inodes);
     }
 
     /* Debugging */
@@ -438,11 +427,11 @@ printFreeInodeCSVRecord(int num_block) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-///////////////////////////////// Inode Summary ////////////////////////////
+////////////////////////// Inode And Directory Summary /////////////////////
 ////////////////////////////////////////////////////////////////////////////
 void
-getInodeSummary(void) {
-    int i, j, k, block_size = super_block.s_log_block_size;
+getInodeAndDirectory(void) {
+	int i, j, k, block_size = super_block.s_log_block_size;
     
     // Number of inodes per group
     num_inodes = super_block.s_inodes_per_group;
@@ -452,7 +441,7 @@ getInodeSummary(void) {
     for (i = 0; i < num_groups; i++) {
         inode_table[i] = (struct ext2_inode *) malloc(sizeof(struct ext2_inode) * num_inodes);
     }
-    
+
     ssize_t nread;
     for (i = 0; i < num_groups; i++) {
         for (j = 0; j < num_inodes; j++) {
@@ -466,45 +455,11 @@ getInodeSummary(void) {
 
 
                 // For each group, read in a single inode at a time
-                nread = pread(image_fd, &inode_buf, INODE_BUFFER_SIZE, (block_group[i].g_inode_table * block_size) + (j * INODE_SIZE));
+                nread = pread(image_fd, &inode_table[i][j], INODE_SIZE, (block_group[i].g_inode_table * block_size) + (j * INODE_SIZE));
                 if (nread < 0) { 
                     fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
                     exit(EXIT_FAILURE);
                 }                
-
-                // Inode ID number (to be analyzed in printInodeSummaryCSVRecord)
-                // Stored in inode_array
-                
-                // File type and mode (to be analyzed in printInodeSummaryCSVRecord)
-                memcpy(&inode_table[i][j].i_mode, inode_buf, 2);
-                
-                // Owner
-                memcpy(&inode_table[i][j].i_uid, inode_buf + 2, 2);
-                
-                // Group
-                memcpy(&inode_table[i][j].i_gid, inode_buf + 24, 2);
-                
-                // Link count
-                memcpy(&inode_table[i][j].i_links_count, inode_buf + 26, 2);
-                
-                // Creation time (to be analyzed in printInodeSummaryCSVRecord)
-                memcpy(&inode_table[i][j].i_ctime, inode_buf + 12, 4);
-                
-                // Modification time (to be analyzed in printInodeSummaryCSVRecord)
-                memcpy(&inode_table[i][j].i_mtime, inode_buf + 16, 4);
-                
-                // Last access time (to be analyzed in printInodeSummaryCSVRecord)
-                memcpy(&inode_table[i][j].i_atime, inode_buf + 8, 4);
-                
-                // File size
-                memcpy(&inode_table[i][j].i_size, inode_buf + 4, 4);
-                memcpy(&inode_table[i][j].i_dir_acl, inode_buf + 108, 4);
-                
-                // Number of blocks
-                memcpy(&inode_table[i][j].i_blocks, inode_buf + 28, 4);
-                
-                // Check to see how the directory is implemented (i.e. hash/b-tree)
-                memcpy(&inode_table[i][j].i_flags, inode_buf + 32, 4);
 
                 /* Debugging */
                 /*
@@ -518,23 +473,16 @@ getInodeSummary(void) {
                 printf("Inode Size: %d\n", inode_table[i][j].i_size);
                 printf("Inode Blocks: %d\n", inode_table[i][j].i_blocks);
 				*/
-
-                // Direct blocks
-                // Indirect block
-                // Doubly indirect block
-                // Triply indirect block
-                for (k = 0; k < EXT2_N_BLOCKS; k++) {
-                    memcpy(&inode_table[i][j].i_block[k], inode_buf + 40 + (k * 4), 4);
-                }
             }
         }
     }
 }
 
 void
-printInodeSummaryCSVRecord(void) {
+printInodeAndDirectoryCSVRecord(void) {
     // Print to STDOUT inode summary CSV record
-    int i, j, k, file_mode, mode, flags, bitmask;
+    int i, j, k, file_mode, mode, flags, bitmask, block_size = super_block.s_log_block_size;
+    ssize_t nread;
     long int file_size;
     char file_type;
     time_t create_time, mod_time, access_time;
@@ -542,6 +490,9 @@ printInodeSummaryCSVRecord(void) {
     char ctime[TIME_BUFFER], mtime[TIME_BUFFER], atime[TIME_BUFFER];
     for (i = 0; i < num_groups; i++) {
         for (j = 0; j < num_inodes; j++) {
+  			// Reset directory_flag
+  			directory_flag = 0;
+
             // Check to see if inode is free/allocated
             // If free, skip
             if (inode_array[i][j] == 0) {
@@ -563,7 +514,7 @@ printInodeSummaryCSVRecord(void) {
             	else
             		printf("Directory format is linked list.\n");
 				*/
-				
+
                 // Get file type
                 bitmask = 0xF000;
                 mode = inode_table[i][j].i_mode;
@@ -573,6 +524,7 @@ printInodeSummaryCSVRecord(void) {
                 }
                 else if (file_mode == EXT2_S_IFDIR) {
                     file_type = 'd';
+                    directory_flag = 1;
                 }
                 else if (file_mode == EXT2_S_IFLNK) {
                     file_type = 's';
@@ -633,19 +585,43 @@ printInodeSummaryCSVRecord(void) {
                         fprintf(stdout, "\n");
                     }
                 }
+
+                // If inode is a directory, process it
+                if (directory_flag == 1) {
+                	struct ext2_dir_entry directory;
+                    // Analyze direct blocks 
+                	for (k = 0; k < EXT2_N_BLOCKS - 3; k++) {
+                		int offset = 0; 
+                		while (offset < block_size) {
+                			nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size) + offset);
+               				if (nread < 0) { 
+                    			fprintf(stderr, "Error reading directory info from image file.\n");
+                    			exit(EXIT_FAILURE);
+               				}   
+
+                            // Check to see that the data block is valid
+               				if (directory.inode == 0)
+               					break;
+
+                            // TODO: fix string formatting (right now, temporary fix)
+               				char temp[255];
+               				memset(temp, 0, 255);
+               				strncat(&temp[0], "'", 1);
+               				strncat(temp, directory.name, strlen(directory.name));
+               				int var = strlen(directory.name);
+               				strncat(temp, "'", 1);
+
+               				fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, temp);
+
+                            // Increment the offset to the next directory entry
+                			offset += directory.rec_len;
+                		}
+                	}
+                    // TODO: Analyze the indirect blocks
+                }
             }
         }
     }
-}
-
-////////////////////////////////////////////////////////////////////////////
-//////////////////////////////// Directory Entries /////////////////////////
-////////////////////////////////////////////////////////////////////////////
-/*
-void
-printDirectoryCSVRecord(void) {
-    // Print to STDOUT directory entries CSV record
-    
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -657,7 +633,7 @@ printIndirectCSVRecord(void) {
     // Print to STDOUT indirect block references CSV record
     
 }
-*/
+
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Main Function //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -671,23 +647,19 @@ main (int argc, char *argv[])
     getSuperBlock(&super_block);
     printSuperBlockCSVRecord();
     
-    
     // Get block group information and print it to STDOUT
     getBlockGroup();
     printBlockGroupCSVRecord();
     
-    
     // Get free block information and print it to STDOUT (handled in getFreeBlock())
     getFreeBlock();
-    
     
     // Get free inode information and print it to STDOUT
     getFreeInode();
     
-    
-    // Get inode summary information and print it to STDOUT
-    getInodeSummary();
-    printInodeSummaryCSVRecord();
+    // Get inode and directory summary information and print it to STDOUT
+    getInodeAndDirectory();
+    printInodeAndDirectoryCSVRecord();
 
     // If success
     exit(EXIT_SUCCESS);
