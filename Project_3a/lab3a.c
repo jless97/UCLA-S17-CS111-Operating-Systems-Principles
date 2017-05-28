@@ -52,6 +52,10 @@
 #define EXT2_S_IWOTH 2
 #define EXT2_S_IXOTH 1
 
+// Directory format specifiers
+#define EXT2_BTREE_FL 4096
+#define EXT2_INDEX_FL 4096
+
 // Time field length
 #define TIME_BUFFER 18
 
@@ -499,6 +503,9 @@ getInodeSummary(void) {
                 // Number of blocks
                 memcpy(&inode_table[i][j].i_blocks, inode_buf + 28, 4);
                 
+                // Check to see how the directory is implemented (i.e. hash/b-tree)
+                memcpy(&inode_table[i][j].i_flags, inode_buf + 32, 4);
+
                 /* Debugging */
                 /*
                 printf("Inode file type and mode: %d\n", inode_table[i][j].i_mode);
@@ -527,7 +534,7 @@ getInodeSummary(void) {
 void
 printInodeSummaryCSVRecord(void) {
     // Print to STDOUT inode summary CSV record
-    int i, j, k, file_mode, mode, bitmask;
+    int i, j, k, file_mode, mode, flags, bitmask;
     long int file_size;
     char file_type;
     time_t create_time, mod_time, access_time;
@@ -546,6 +553,17 @@ printInodeSummaryCSVRecord(void) {
             	if ((inode_table[i][j].i_mode == 0) || (inode_table[i][j].i_links_count == 0))
             		continue;
 
+            	/* Debugging */
+            	// Get directory format
+            	/*bitmask = 0x00F0;
+            	flags = inode_table[i][j].i_flags & bitmask;
+            	if (flags == EXT2_INDEX_FL) {
+            		printf("Directory format is indexed.\n");
+            	}
+            	else
+            		printf("Directory format is linked list.\n");
+				*/
+				
                 // Get file type
                 bitmask = 0xF000;
                 mode = inode_table[i][j].i_mode;
