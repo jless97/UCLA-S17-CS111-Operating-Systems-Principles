@@ -212,9 +212,9 @@ getBlockGroup(void) {
     num_groups = (int)ceil((double) super_block.s_blocks_count / (double) super_block.s_blocks_per_group);
 
     /* Debugging */
-    printf("Blocks: %d\n", super_block.s_blocks_count);
-    printf("Blocks per group: %d\n", super_block.s_blocks_per_group);
-    printf("Number of groups: %d\n", num_groups);
+    //printf("Blocks: %d\n", super_block.s_blocks_count);
+    //printf("Blocks per group: %d\n", super_block.s_blocks_per_group);
+    //printf("Number of groups: %d\n", num_groups);
 
 
     // If there are some leftover blocks for last block group
@@ -257,8 +257,8 @@ getBlockGroup(void) {
         memcpy(&block_group[i].g_free_inodes_count, descriptor_table_buf + 14, 2);
 
         /* Debugging */
-        printf("Number of free blocks: %d\n", block_group[i].g_free_blocks_count);
-        printf("Number of free inodes: %d\n", block_group[i].g_free_inodes_count);
+        //printf("Number of free blocks: %d\n", block_group[i].g_free_blocks_count);
+        //printf("Number of free inodes: %d\n", block_group[i].g_free_inodes_count);
 
         // Block number of free block bitmap
         memcpy(&block_group[i].g_block_bitmap, descriptor_table_buf, 4);
@@ -308,8 +308,8 @@ getFreeBlock(void) {
             nread = pread(image_fd, &block_bitmap_buf, 1, (block_group[i].g_block_bitmap * block_size) + j);
             
             /* Debugging */
-            printf("Block buf contains: %d\n", block_bitmap_buf);
-            printf("Block bitmap location: %d\n", (block_group[i].g_block_bitmap * block_size) + j);
+            //printf("Block buf contains: %d\n", block_bitmap_buf);
+            //printf("Block bitmap location: %d\n", (block_group[i].g_block_bitmap * block_size) + j);
 
             if (nread < 0) {
                 fprintf(stderr, "Error reading free block bitmap info from image file.\n");
@@ -377,8 +377,8 @@ getFreeInode(void) {
             }
 
             /* Debugging */
-            printf("Inode buf contains: %d\n", inode_bitmap_buf);
-            printf("Inode bitmap location: %d\n", (block_group[i].g_inode_bitmap * block_size) + j);
+            //printf("Inode buf contains: %d\n", inode_bitmap_buf);
+            //printf("Inode bitmap location: %d\n", (block_group[i].g_inode_bitmap * block_size) + j);
 
             // No more bytes to read from bitmap
             if (nread == 0) {
