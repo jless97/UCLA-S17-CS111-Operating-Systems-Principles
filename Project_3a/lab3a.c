@@ -125,9 +125,9 @@ void getInodeAndDirectory(void);
 void printInodeAndDirectoryCSVRecord(void);
 // Acquire indirect block references
 // Print indirect block references csv record
-int printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int i, int j);
-int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int ParentLevel, int i, int j);
-int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int ParentLevel, int i, int j);
+int printIndirectCSVRecord(int fileOffset, int iniBlockNum, int i, int j);
+int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j);
+int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j);
 void getIndirectBlocks(void);
 
 ////////////////////////////////////////////////////////////////////////////
