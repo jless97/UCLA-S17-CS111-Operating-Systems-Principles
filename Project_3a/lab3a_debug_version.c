@@ -136,6 +136,7 @@ print_usage(void) {
     printf("Usage: ./lab3a [Image File]\n");
 }
 
+//TODO: fix exit codes for parser
 void
 parser(int argc, char * argv[]) {
     if (argc != 2) {
@@ -164,6 +165,9 @@ getSuperBlock(struct ext2_super_block *block) {
         exit(EXIT_OTHER_FAILURE);
     }
     
+    /* Debugging */
+    //memcpy(&block->s_rev_level, super_block_buf + 76, 4);
+
     // Total number of blocks
     memcpy(&block->s_blocks_count, super_block_buf + 4, 4);
     
@@ -200,6 +204,12 @@ void
 getBlockGroup(void) {
     // Get the number of block groups
     num_groups = (int)ceil((double) super_block.s_blocks_count / (double) super_block.s_blocks_per_group);
+
+    /* Debugging */
+    //printf("Blocks: %d\n", super_block.s_blocks_count);
+    //printf("Blocks per group: %d\n", super_block.s_blocks_per_group);
+    //printf("Number of groups: %d\n", num_groups);
+    //printf("Revision number: %d\n", super_block.s_rev_level);
 
     // If there are some leftover blocks for last block group
     int leftover_blocks = super_block.s_blocks_count % super_block.s_blocks_per_group;
@@ -245,6 +255,10 @@ getBlockGroup(void) {
         // Total number of free inodes
         memcpy(&block_group[i].g_free_inodes_count, descriptor_table_buf + 14, 2);
 
+        /* Debugging */
+        //printf("Number of free blocks: %d\n", block_group[i].g_free_blocks_count);
+        //printf("Number of free inodes: %d\n", block_group[i].g_free_inodes_count);
+
         // Block number of free block bitmap
         memcpy(&block_group[i].g_block_bitmap, descriptor_table_buf, 4);
         
@@ -276,13 +290,25 @@ getFreeBlock(void) {
     ssize_t nread;
     int i, j, bit_size = 8, block_size = super_block.s_log_block_size, num_block = 1, bitmask = 1;
 
+    /* Debugging */
+    //printf("Block size: %d\n", block_size);
+    // Block size: 1024
+
     for (i = 0; i < num_groups; i++) {
         j = 0;
         // Loop through block bitmap (1024 bytes)
         while (j != block_size) {
             block_bitmap_buf = 0;
             // Read in a byte at a time (8 bits: 8 corresponding data blocks)
+            // Each block bitmap is located at block number: block_group[i].g_block_bitmap
+            // This is just the block number, so multiply by block size (1024) to get to block bitmap
+            // Now: since we read in a byte a time, increment the offset by 1 from current location each time (i.e +j)
             nread = pread(image_fd, &block_bitmap_buf, 1, (block_group[i].g_block_bitmap * block_size) + j);
+            
+            /* Debugging */
+            //printf("Block buf contains: %d\n", block_bitmap_buf);
+            //printf("Block bitmap location: %d\n", (block_group[i].g_block_bitmap * block_size) + j);
+
             if (nread < 0) {
                 fprintf(stderr, "Error reading free block bitmap info from image file.\n");
                 exit(EXIT_OTHER_FAILURE);
@@ -344,6 +370,9 @@ getFreeInode(void) {
         }
     }
 
+    /* Debugging */
+    //printf("Number of inodes: %d\n", num_inodes);
+
     // Variable to hold the bitmap block (reading 1 byte at a time)
     __u8 inode_bitmap_buf;
     
@@ -358,6 +387,10 @@ getFreeInode(void) {
                 exit(EXIT_OTHER_FAILURE);
             }
 
+            /* Debugging */
+            //printf("Inode buf contains: %d\n", inode_bitmap_buf);
+            //printf("Inode bitmap location: %d\n", (block_group[i].g_inode_bitmap * block_size) + j);
+
             // No more bytes to read from bitmap
             if (nread == 0) {
                 bit_size = 0;
@@ -365,16 +398,19 @@ getFreeInode(void) {
             else {
                 bit_size = 8;
             }
+            //fprintf(stdout, "%d\n", inode_bitmap_buf);
             while (bit_size != 0) {
                 // If the bit being checked is a 0, then the corresponding block is free
                 if ((inode_bitmap_buf & bitmask) == 0) {
                     // Set portion of inode array to note that inode block is free
                     inode_array[i][k] = 0;
+                    //fprintf(stdout, "k = %d, num_block = %d, inode_array[%d][%d] = %d\n", k, num_block, i, j, inode_array[i][j]);
                     printFreeInodeCSVRecord(num_block);
                 }
                 // Set portion of inode array to note that inode block is allocated
                 else {
                     inode_array[i][k] = 1;
+                    //fprintf(stdout, "k = %d, num_block = %d, inode_array[%d][%d] = %d\n", k, num_block, i, j, inode_array[i][j]);
                 }
                 // Shift the bits to the right by 1 to read next bit
                 inode_bitmap_buf = inode_bitmap_buf >> 1;
@@ -389,6 +425,14 @@ getFreeInode(void) {
         // Reset block number for next block group
         num_block = 0;
     }
+
+    /* Debugging */
+    //for (i = 0; i < num_groups; i++) {
+    //	for (k = 0; k < num_inodes; k++) {
+    //		printf("Inode Group: %d, Inode Number: %d => %d\n", i, k + 1, inode_array[i][k]);
+    //
+    //	}
+    //}
 }
 
 void
@@ -441,6 +485,20 @@ getInodeAndDirectory(void) {
                     fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
                     exit(EXIT_OTHER_FAILURE);
                 }                
+
+                /* Debugging */
+                /*
+                printf("Inode Number: %d\n", j + 1);
+                printf("Inode file type and mode: %d\n", inode_table[i][j].i_mode);
+                printf("Inode Owner: %d\n", inode_table[i][j].i_uid);
+                printf("Inode Group: %d\n", inode_table[i][j].i_gid);
+                printf("Inode Link Count: %d\n", inode_table[i][j].i_links_count);
+                printf("Inode Creation Time: %d\n", inode_table[i][j].i_ctime);
+                printf("Inode Modification Time: %d\n", inode_table[i][j].i_mtime);
+                printf("Inode Access Time: %d\n", inode_table[i][j].i_atime);
+                printf("Inode Size: %d\n", inode_table[i][j].i_size);
+                printf("Inode Blocks: %d\n", inode_table[i][j].i_blocks);
+				*/
             }
         }
     }
@@ -471,6 +529,17 @@ printInodeAndDirectoryCSVRecord(void) {
             	// Check to see if nonzero mode
             	if ((inode_table[i][j].i_mode == 0) || (inode_table[i][j].i_links_count == 0))
             		continue;
+
+            	/* Debugging */
+            	// Get directory format
+            	/*bitmask = 0x00F0;
+            	flags = inode_table[i][j].i_flags & bitmask;
+            	if (flags == EXT2_INDEX_FL) {
+            		printf("Directory format is indexed.\n");
+            	}
+            	else
+            		printf("Directory format is linked list.\n");
+				*/
 
                 // Get file type
                 bitmask = 0xF000;
@@ -577,12 +646,29 @@ printInodeAndDirectoryCSVRecord(void) {
 
                     // Analyze singly indirect block
                     for (k = EXT2_N_BLOCKS - 3; k < EXT2_N_BLOCKS - 2; k++) {
+                        //nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size));
+                        //if (directory.inode == 0)
+                        //    break;
+
+                        __u32 num_block;
                         // Address of the indirect block
                         int indirect_block = inode_table[i][j].i_block[k] * block_size;
                         int increment = 0;
                         int address = 0;
-                        __u32 num_block;
 
+                        /* Debugging */
+                        // Address of the indirect block
+                        // Indirect block: Block 1014
+                        //__u32 test;
+                        // First block: 1015, Second block: 1016, Third Block: 145, Fourth Block: 146
+                        //pread(image_fd, &test, sizeof(__u32), indirect_block + (sizeof(__u32) * 20));
+                        //printf("Testing: %d\n", test);
+
+                        // TODO: Missing 10 indirect files
+                        // UPDATE: Found the files, but they are after a file with inode 0 (so exit? or process them?)
+                        // Inode 14: Missing indirect files (49, 54, 58, 59, and b.3DVN...)
+                        // Inode 86: Missing indirect files (90, 109, 128, 136, 139)
+                        // Inode 179: All indirect files found
                         pread(image_fd, &num_block, sizeof(__u32), indirect_block);
                         if (nread < 0) { 
                                 fprintf(stderr, "Error reading indirect block info from image file.\n");
@@ -599,6 +685,22 @@ printInodeAndDirectoryCSVRecord(void) {
                                     fprintf(stderr, "Error reading indirect block directory info from image file.\n");
                                     exit(EXIT_OTHER_FAILURE);
                                 } 
+
+                                /* Debugging */
+                                /*
+                                if (directory.inode==0) {
+                                    //flag = 0;
+                                    printf("yes it does\n");
+                                    printf("File name: %s\n", directory.name);
+				                    printf("Block number: %d\n", address / block_size);
+				                    printf("Record length: %d\n", directory.rec_len);
+                                }
+                                */
+
+                                // TODO: DO WE CHECK THIS CASE (because there are some actual files after a file with inode 0)
+                                // Check to see that the data block is valid
+                                //if (directory.inode == 0) 
+                                  //  break;
 
                                 // Add 1 for null-terminating character
                                 // Add 2 for single quotes
