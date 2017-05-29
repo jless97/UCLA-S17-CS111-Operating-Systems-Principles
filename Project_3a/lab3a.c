@@ -792,12 +792,12 @@ getIndirectBlocks(void) {
                 }
 
                 if (inode_table[i][j].i_block[13] != 0) {
-                    printIndirectCSVRecord(11+block_size/4+1, inode_table[i][j].i_block[13], 2, i, j);
+                    checkDoubleIndirectBlock(11+block_size/4+1, inode_table[i][j].i_block[13], 2, i, j);
                 }
 
                 
                 if (inode_table[i][j].i_block[14] != 0) {
-                    printIndirectCSVRecord(11+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], 3, i, j);
+                    checkTripleIndirectBlock(11+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], 3, i, j);
                 }
             }
         }
