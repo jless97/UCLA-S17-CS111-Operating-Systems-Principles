@@ -481,7 +481,7 @@ getInodeAndDirectory(void) {
 void
 printInodeAndDirectoryCSVRecord(void) {
     // Print to STDOUT inode summary CSV record
-    int i, j, k, file_mode, mode, flags, bitmask, block_size = super_block.s_log_block_size;
+    int i, j, k, l, file_mode, mode, flags, bitmask, block_size = super_block.s_log_block_size;
     ssize_t nread;
     long int file_size;
     char file_type;
@@ -595,7 +595,7 @@ printInodeAndDirectoryCSVRecord(void) {
                 		while (offset < block_size) {
                 			nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size) + offset);
                				if (nread < 0) { 
-                    			fprintf(stderr, "Error reading directory irynfo from image file.\n");
+                    			fprintf(stderr, "Error reading block directory info from image file.\n");
                     			exit(EXIT_FAILURE);
                				}   
 
@@ -603,7 +603,6 @@ printInodeAndDirectoryCSVRecord(void) {
                				if (directory.inode == 0)
                					break;
 
-                            // TODO: fix string formatting (right now, temporary fix)
                             // Add 1 for null-terminating character
                             // Add 2 for single quotes
                             char file_name[EXT2_NAME_LEN + 1 + 2];
@@ -618,7 +617,54 @@ printInodeAndDirectoryCSVRecord(void) {
                 			offset += directory.rec_len;
                 		}
                 	}
-                    // TODO: Analyze the indirect blocks
+                    // Analyze singly indirect block
+                    for (k = EXT2_N_BLOCKS - 3; k < EXT2_N_BLOCKS - 2; k++) {
+                        nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size));
+                        if (directory.inode == 0)
+                            break;
+
+                        /* Debugging */
+                        // Address of the indirect block
+                        // Indirect block: Block 1014
+                        //__u32 test;
+                        // First block: 1015, Second block: 1016, Third Block: 145, Fourth Block: 146
+                        //pread(image_fd, &test, sizeof(__u32), indirect_block + sizeof(__u32) + sizeof(__u32) + sizeof(__u32));
+                        //printf("Testing: %d\n", test);
+
+
+                        __u32 num_block = 1;
+                        // Address of the indirect block
+                        int indirect_block = inode_table[i][j].i_block[k] * block_size;
+                        int increment = 0;
+                        int address = 0;
+                        while (num_block != 0) {
+                            // Read in the block number
+                            pread(image_fd, &num_block, sizeof(__u32), indirect_block + increment);
+                            address = num_block * block_size;
+                            int offset = 0;
+                            while (offset < block_size) {
+                                pread(image_fd, &directory, sizeof(struct ext2_dir_entry), address + offset);
+
+                                // Check to see that the data block is valid
+                                if (directory.inode == 0)
+                                    break;
+
+                                // Add 1 for null-terminating character
+                                // Add 2 for single quotes
+                                char file_name[EXT2_NAME_LEN + 1 + 2];
+                                file_name[0] = '\'';
+                                memcpy(file_name + 1, directory.name, directory.name_len);
+                                file_name[directory.name_len+1] = '\'';
+                                file_name[directory.name_len+2] = '\0';
+
+                                fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, file_name);
+
+                                // Increment the offset to the next directory entry
+                                offset += directory.rec_len;
+                            }
+                            increment += sizeof(__u32);
+                        }
+                    }
                 }
             }
         }
