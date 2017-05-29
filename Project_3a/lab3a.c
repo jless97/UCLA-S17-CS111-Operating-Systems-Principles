@@ -437,6 +437,12 @@ getFreeInode(void) {
     //
     //	}
     //}
+    printf("number of inodes: %d\n", num_inodes);
+    for (k = 0; k < num_inodes; k++) {
+        if (inode_array[0][k] == 1) {
+            printf("Inode number: %d, value: %d\n", k, 1);
+        }
+    }
 }
 
 void
@@ -491,7 +497,7 @@ getInodeAndDirectory(void) {
                 }                
 
                 /* Debugging */
-                /*
+                printf("Inode Number: %d\n", j + 1);
                 printf("Inode file type and mode: %d\n", inode_table[i][j].i_mode);
                 printf("Inode Owner: %d\n", inode_table[i][j].i_uid);
                 printf("Inode Group: %d\n", inode_table[i][j].i_gid);
@@ -501,7 +507,7 @@ getInodeAndDirectory(void) {
                 printf("Inode Access Time: %d\n", inode_table[i][j].i_atime);
                 printf("Inode Size: %d\n", inode_table[i][j].i_size);
                 printf("Inode Blocks: %d\n", inode_table[i][j].i_blocks);
-				*/
+				
             }
         }
     }
@@ -649,9 +655,9 @@ printInodeAndDirectoryCSVRecord(void) {
 
                     // Analyze singly indirect block
                     for (k = EXT2_N_BLOCKS - 3; k < EXT2_N_BLOCKS - 2; k++) {
-                        nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size));
-                        if (directory.inode == 0)
-                            break;
+                        //nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size));
+                        //if (directory.inode == 0)
+                        //    break;
 
                         __u32 num_block;
                         // Address of the indirect block
@@ -667,17 +673,36 @@ printInodeAndDirectoryCSVRecord(void) {
                         //pread(image_fd, &test, sizeof(__u32), indirect_block + (sizeof(__u32) * 20));
                         //printf("Testing: %d\n", test);
 
+                        // TODO: Missing 10 indirect files
+                        // UPDATE: Found the files, but they are after a file with inode 0 (so exit? or process them?)
+                        // Inode 14: Missing indirect files (49, 54, 58, 59, and b.3DVN...)
+                        // Inode 86: Missing indirect files (90, 109, 128, 136, 139)
+                        // Inode 179: All indirect files found
+                        int flag = 1;
                         pread(image_fd, &num_block, sizeof(__u32), indirect_block);
                         while (num_block != 0) {
                             // Read in the block number
                             address = num_block * block_size;
+                            printf("Number of block: %d\n", address / block_size);
                             int offset = 0;
-                            while (offset < block_size) {
+                            while (offset < block_size) {//offset < block_size) {
                                 pread(image_fd, &directory, sizeof(struct ext2_dir_entry), address + offset);
+                                
+                                /* Debugging */
+                                /*
+                                if (directory.inode==0) {
+                                    //flag = 0;
+                                    printf("yes it does\n");
+                                    printf("File name: %s\n", directory.name);
+				                    printf("Block number: %d\n", address / block_size);
+				                    printf("Record length: %d\n", directory.rec_len);
+                                }
+                                */
 
+                                // TODO: DO WE CHECK THIS CASE (because there are some actual files after a file with inode 0)
                                 // Check to see that the data block is valid
-                                if (directory.inode == 0)
-                                    break;
+                                //if (directory.inode == 0) 
+                                  //  break;
 
                                 // Add 1 for null-terminating character
                                 // Add 2 for single quotes
@@ -691,6 +716,9 @@ printInodeAndDirectoryCSVRecord(void) {
 
                                 // Increment the offset to the next directory entry
                                 offset += directory.rec_len;
+                                if (offset > 1024) {
+                                    printf("why me: %s\n", directory.name);
+                                }
                             }
                             increment += sizeof(__u32);
                             pread(image_fd, &num_block, sizeof(__u32), indirect_block + increment);
