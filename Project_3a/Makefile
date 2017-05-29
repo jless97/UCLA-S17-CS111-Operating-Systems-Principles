@@ -1,12 +1,8 @@
 .SILENT:
 
-# NAME: Jason Less
-# EMAIL: jaless1997@gmail.com
-# ID: 404-640-158
-
-# NAME: Yun Xu
-# EMAIL: x_one_u@yahoo.com
-# ID: 304635157
+# NAME: Jason Less & Yun Xu
+# EMAIL: jaless1997@gmail.com & x_one_u@yahoo.com
+# ID: 404-640-158 & 304635157
 
 CC = gcc
 CFLAGS = -g
