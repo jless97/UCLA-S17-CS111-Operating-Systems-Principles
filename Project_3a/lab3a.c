@@ -127,7 +127,8 @@ void printInodeAndDirectoryCSVRecord(void);
 // Acquire indirect block references
 
 // Print indirect block references csv record
-void printIndirectCSVRecord(void);
+int printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int CurrentLevel, int i, int j);
+void getIndirectBlocks(void);
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Function Definitions ///////////////////////
@@ -604,14 +605,14 @@ printInodeAndDirectoryCSVRecord(void) {
                					break;
 
                             // TODO: fix string formatting (right now, temporary fix)
-               				char temp[255];
+               				/*char temp[255];
                				memset(temp, 0, 255);
                				strncat(&temp[0], "'", 1);
                				strncat(temp, directory.name, strlen(directory.name));
                				int var = strlen(directory.name);
-               				strncat(temp, "'", 1);
+               				strncat(temp, "'", 1);*/
 
-               				fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, temp);
+               				fprintf(stdout, "%s,%d,%d,%d,%d,%d,'%s'\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, directory.name);
 
                             // Increment the offset to the next directory entry
                 			offset += directory.rec_len;
@@ -628,10 +629,87 @@ printInodeAndDirectoryCSVRecord(void) {
 //////////////////////////// Indirect Block References /////////////////////
 ////////////////////////////////////////////////////////////////////////////
 
-void
-printIndirectCSVRecord(void) {
+int
+printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int CurrentLevel, int i, int j) {
     // Print to STDOUT indirect block references CSV record
-    
+
+    // get block size for offset
+    int k, block_size = super_block.s_log_block_size;
+    // each block takes up 4 bits of the block size
+    int totalBlockNum = block_size/4;    // should be 256
+
+    if (ParentLevel == 3) {
+        __u32* tripleIndirBlocks = (__u32*)malloc(block_size);
+
+        if (pread(image_fd, tripleIndirBlocks, block_size, inode_table[i][j].i_block[14]*block_size) < 0) {
+            fprintf(stderr, "Error reading double indirect blocks from image file.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        for (k = 0; k < totalBlockNum; k++) {
+            if (tripleIndirBlocks[k] != 0) {
+                printIndirectCSVRecord(fileOffset, iniBlockNum+k+1, 3, 2, i, j);
+            }
+        }
+    }
+
+    if (ParentLevel == 2 && CurrentLevel != 1) {
+        __u32* doubleIndirBlocks = (__u32*)malloc(block_size);
+
+        if (pread(image_fd, doubleIndirBlocks, block_size, inode_table[i][j].i_block[13]*block_size) < 0) {
+            fprintf(stderr, "Error reading double indirect blocks from image file.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        for (k = 0; k < totalBlockNum; k++) {
+            if (doubleIndirBlocks[k] != 0) {
+                printIndirectCSVRecord(fileOffset, iniBlockNum+k+1, 2, 1,i, j);
+            }
+        }
+    }
+
+    __u32* singleIndirBlocks = (__u32*)malloc(block_size);
+
+    if (pread(image_fd, singleIndirBlocks, block_size, inode_table[i][j].i_block[12]*block_size) < 0) {
+        fprintf(stderr, "Error reading single indirect blocks from image file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (k = 0; k < totalBlockNum; k++) {
+        fileOffset++;
+        if (singleIndirBlocks[k] != 0) {
+            fprintf(stdout,"%s,%d,%d,%d,%d,%d\n", "INDIRECT", j+1, ParentLevel, fileOffset, iniBlockNum, iniBlockNum+k+1);
+        }
+    }
+}
+
+void
+getIndirectBlocks(void) {
+    //check indirect blocks 
+    int i, j, k, fileOffset = 11, block_size = super_block.s_log_block_size;
+    for (i = 0; i < num_groups; i++) {
+        for (j = 0; j < num_inodes; j++) {
+            // Check to see if inode is free/allocated
+            if (inode_array[i][j] == 0) {
+                continue;
+            }
+            // If allocated, check indirect blocks
+            else if (inode_array[i][j] == 1) {
+                if (inode_table[i][j].i_block[12] != 0) {
+                    printIndirectCSVRecord(11, inode_table[i][j].i_block[12], 1, 1, i, j);
+                }
+
+                if (inode_table[i][j].i_block[13] != 0) {
+                    printIndirectCSVRecord(11+block_size/4+1, inode_table[i][j].i_block[13], 2, 2, i, j);
+                }
+
+                
+                if (inode_table[i][j].i_block[14] != 0) {
+                    printIndirectCSVRecord(11+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], 3, 3, i, j);
+                }
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
