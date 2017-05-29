@@ -125,8 +125,7 @@ void printInodeAndDirectoryCSVRecord(void);
 // Print indirect block references csv record
 int printIndirectCSVRecord(int fileOffset, int iniBlockNum, int i, int j);
 int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j);
-int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j);
-void getIndirectBlocks(void);
+int checkTripleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j);
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Function Definitions ///////////////////////
@@ -628,6 +627,19 @@ printInodeAndDirectoryCSVRecord(void) {
                         }
                     }
                 }
+
+                if (inode_table[i][j].i_block[12] != 0) {
+                    printIndirectCSVRecord(12, inode_table[i][j].i_block[12], i, j);
+                }
+
+                if (inode_table[i][j].i_block[13] != 0) {
+                    checkDoubleIndirectBlock(12+block_size/4, inode_table[i][j].i_block[13], i, j);
+                }
+
+                
+                if (inode_table[i][j].i_block[14] != 0) {
+                    checkTripleIndirectBlock(12+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], i, j);
+                }
             }
         }
     }
@@ -715,35 +727,6 @@ int checkTripleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j) {
     }
 }
 
-void
-getIndirectBlocks(void) {
-    //check indirect blocks 
-    int i, j, k, fileOffset = 11, block_size = super_block.s_log_block_size;
-    for (i = 0; i < num_groups; i++) {
-        for (j = 0; j < num_inodes; j++) {
-            // Check to see if inode is free/allocated
-            if (inode_array[i][j] == 0) {
-                continue;
-            }
-            // If allocated, check indirect blocks
-            else if (inode_array[i][j] == 1) {
-                if (inode_table[i][j].i_block[12] != 0) {
-                    printIndirectCSVRecord(12, inode_table[i][j].i_block[12], i, j);
-                }
-
-                if (inode_table[i][j].i_block[13] != 0) {
-                    checkDoubleIndirectBlock(12+block_size/4, inode_table[i][j].i_block[13], i, j);
-                }
-
-                
-                if (inode_table[i][j].i_block[14] != 0) {
-                    checkTripleIndirectBlock(12+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], i, j);
-                }
-            }
-        }
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Main Function //////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -770,9 +753,6 @@ main (int argc, char *argv[])
     // Get inode and directory summary information and print it to STDOUT
     getInodeAndDirectory();
     printInodeAndDirectoryCSVRecord();
-
-    // Get indirect block summary information and print it to STDOUT
-    getIndirectBlocks();
 
     // If success
     exit(EXIT_SUCCESS);
