@@ -127,7 +127,9 @@ void printInodeAndDirectoryCSVRecord(void);
 // Acquire indirect block references
 
 // Print indirect block references csv record
-int printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int CurrentLevel, int i, int j);
+int printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int i, int j);
+int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int ParentLevel, int i, int j);
+int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int ParentLevel, int i, int j);
 void getIndirectBlocks(void);
 
 ////////////////////////////////////////////////////////////////////////////
@@ -697,52 +699,13 @@ printInodeAndDirectoryCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 
 int
-printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int CurrentLevel, int i, int j) {
+printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int i, int j) {
     // Print to STDOUT indirect block references CSV record
 
     // get block size for offset
     int k, block_size = 1024 << super_block.s_log_block_size;
-
     // each block takes up 4 bits of the block size
     int totalBlockNum = block_size/4;    // should be 256
-
-    if (ParentLevel == 3) {
-        __u32* tripleIndirBlocks = (__u32*)malloc(block_size);
-
-        if (tripleIndirBlocks == NULL) {
-            fprintf(stderr, "Error: failed malloc for tripleIndirBlocks.\n");
-        }
-
-        if (pread(image_fd, tripleIndirBlocks, block_size, inode_table[i][j].i_block[14]*block_size) < 0) {
-            fprintf(stderr, "Error reading double indirect blocks from image file.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        for (k = 0; k < totalBlockNum; k++) {
-            if (tripleIndirBlocks[k] != 0) {
-                fileOffset = printIndirectCSVRecord(fileOffset, tripleIndirBlocks[k], 3, 2, i, j);
-            }
-        }
-    }
-
-    if (ParentLevel == 2 && CurrentLevel != 1) {
-        __u32* doubleIndirBlocks = (__u32*)malloc(block_size);
-
-        if (doubleIndirBlocks == NULL) {
-            fprintf(stderr, "Error: failed malloc for doubleIndirBlocks.\n");
-        }        
-
-        if (pread(image_fd, doubleIndirBlocks, block_size, inode_table[i][j].i_block[13]*block_size) < 0) {
-            fprintf(stderr, "Error reading double indirect blocks from image file.\n");
-            exit(EXIT_FAILURE);
-        }
-
-        for (k = 0; k < totalBlockNum; k++) {
-            if (doubleIndirBlocks[k] != 0) {
-                fileOffset = printIndirectCSVRecord(fileOffset, doubleIndirBlocks[k], 2, 1,i, j);
-            }
-        }
-    }
 
     __u32* singleIndirBlocks = (__u32*)malloc(block_size);
 
@@ -750,7 +713,7 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
         fprintf(stderr, "Error: failed malloc for singleIndirBlocks.\n");
     }
 
-    if (pread(image_fd, singleIndirBlocks, block_size, inode_table[i][j].i_block[12]*block_size) < 0) {
+    if (pread(image_fd, singleIndirBlocks, block_size, iniBlockNum*block_size) < 0) {
         fprintf(stderr, "Error reading single indirect blocks from image file.\n");
         exit(EXIT_FAILURE);
     }
@@ -762,6 +725,54 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
         }
     }
     return fileOffset;
+}
+
+int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int ParentLevel, int i, int j) {
+    // get block size for offset
+    int k, block_size = 1024 << super_block.s_log_block_size;
+    // each block takes up 4 bits of the block size
+    int totalBlockNum = block_size/4;    // should be 256
+
+    __u32* doubleIndirBlocks = (__u32*)malloc(block_size);
+
+    if (doubleIndirBlocks == NULL) {
+        fprintf(stderr, "Error: failed malloc for doubleIndirBlocks.\n");
+    }        
+
+    if (pread(image_fd, doubleIndirBlocks, block_size, iniBlockNum*block_size) < 0) {
+        fprintf(stderr, "Error reading double indirect blocks from image file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (k = 0; k < totalBlockNum; k++) {
+        if (doubleIndirBlocks[k] != 0) {
+            fileOffset = printIndirectCSVRecord(fileOffset, doubleIndirBlocks[k], 2, i, j);
+        }
+    }
+}
+
+int checkTripleIndirectBlock (int fileOffset, int iniBlockNum, int ParentLevel, int i, int j) {
+    // get block size for offset
+    int k, block_size = 1024 << super_block.s_log_block_size;
+    // each block takes up 4 bits of the block size
+    int totalBlockNum = block_size/4;    // should be 256
+
+    __u32* tripleIndirBlocks = (__u32*)malloc(block_size);
+
+    if (tripleIndirBlocks == NULL) {
+        fprintf(stderr, "Error: failed malloc for doubleIndirBlocks.\n");
+    }        
+
+    if (pread(image_fd, tripleIndirBlocks, block_size, iniBlockNum*block_size) < 0) {
+        fprintf(stderr, "Error reading double indirect blocks from image file.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for (k = 0; k < totalBlockNum; k++) {
+        if (tripleIndirBlocks[k] != 0) {
+            fileOffset = checkDoubleIndirectBlock(fileOffset, tripleIndirBlocks[k], 3, i, j);
+        }
+    }
 }
 
 void
@@ -777,16 +788,16 @@ getIndirectBlocks(void) {
             // If allocated, check indirect blocks
             else if (inode_array[i][j] == 1) {
                 if (inode_table[i][j].i_block[12] != 0) {
-                    printIndirectCSVRecord(11, inode_table[i][j].i_block[12], 1, 1, i, j);
+                    printIndirectCSVRecord(11, inode_table[i][j].i_block[12], 1, i, j);
                 }
 
                 if (inode_table[i][j].i_block[13] != 0) {
-                    printIndirectCSVRecord(11+block_size/4+1, inode_table[i][j].i_block[13], 2, 2, i, j);
+                    printIndirectCSVRecord(11+block_size/4+1, inode_table[i][j].i_block[13], 2, i, j);
                 }
 
                 
                 if (inode_table[i][j].i_block[14] != 0) {
-                    printIndirectCSVRecord(11+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], 3, 3, i, j);
+                    printIndirectCSVRecord(11+(block_size/4)+(block_size/4)*(block_size/4), inode_table[i][j].i_block[14], 3, i, j);
                 }
             }
         }
