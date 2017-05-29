@@ -689,7 +689,7 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
 
         for (k = 0; k < totalBlockNum; k++) {
             if (tripleIndirBlocks[k] != 0) {
-                printIndirectCSVRecord(fileOffset, iniBlockNum+k+1, 3, 2, i, j);
+                fileOffset = printIndirectCSVRecord(fileOffset, tripleIndirBlocks[k], 3, 2, i, j);
             }
         }
     }
@@ -704,7 +704,7 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
 
         for (k = 0; k < totalBlockNum; k++) {
             if (doubleIndirBlocks[k] != 0) {
-                printIndirectCSVRecord(fileOffset, iniBlockNum+k+1, 2, 1,i, j);
+                fileOffset = printIndirectCSVRecord(fileOffset, doubleIndirBlocks[k], 2, 1,i, j);
             }
         }
     }
@@ -719,9 +719,10 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
     for (k = 0; k < totalBlockNum; k++) {
         fileOffset++;
         if (singleIndirBlocks[k] != 0) {
-            fprintf(stdout,"%s,%d,%d,%d,%d,%d\n", "INDIRECT", j+1, ParentLevel, fileOffset, iniBlockNum, iniBlockNum+k+1);
+            fprintf(stdout,"%s,%d,%d,%d,%d,%d\n", "INDIRECT", j+1, ParentLevel, fileOffset, iniBlockNum, singleIndirBlocks[k]);
         }
     }
+    return fileOffset;
 }
 
 void
