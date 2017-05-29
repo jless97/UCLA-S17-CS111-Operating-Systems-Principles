@@ -30,12 +30,10 @@
 #define DESCRIPTOR_TABLE_SIZE 32
 // Size of inode
 #define INODE_SIZE 128
-
 // File type specifiers
 #define EXT2_S_IFREG 32768
 #define EXT2_S_IFDIR 16384
 #define EXT2_S_IFLNK 40960
-
 // Mode type specifiers
 #define EXT2_S_IRUSR 256
 #define EXT2_S_IWUSR 128
@@ -46,13 +44,13 @@
 #define EXT2_S_IROTH 4
 #define EXT2_S_IWOTH 2
 #define EXT2_S_IXOTH 1
-
 // Directory format specifiers
 #define EXT2_BTREE_FL 4096
 #define EXT2_INDEX_FL 4096
-
 // Time field length
 #define TIME_BUFFER 18
+// Error codes
+#define EXIT_OTHER_FAILURE 2
 
 ////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// Globals ////////////////////////////////////
@@ -149,7 +147,7 @@ parser(int argc, char * argv[]) {
     image_fd = open(argv[1], O_RDONLY);
     if (image_fd < 0) {
         fprintf(stderr, "Error opening image file.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 }
 
@@ -164,7 +162,7 @@ getSuperBlock(struct ext2_super_block *block) {
     ssize_t nread = pread(image_fd, super_block_buf, SUPER_BLOCK_SIZE, SUPER_BLOCK_OFFSET);
     if (nread < 0) {
         fprintf(stderr, "Error reading super block info from image file.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
     
     /* Debugging */
@@ -221,7 +219,7 @@ getBlockGroup(void) {
     
     if (block_group == NULL) {
         fprintf(stderr, "Error: failed malloc for block_group.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 
     ssize_t nread;
@@ -233,7 +231,7 @@ getBlockGroup(void) {
         nread = pread(image_fd, descriptor_table_buf, DESCRIPTOR_TABLE_SIZE, SUPER_BLOCK_SIZE + SUPER_BLOCK_OFFSET + (i * DESCRIPTOR_TABLE_SIZE));
         if (nread < 0) {
             fprintf(stderr, "Error reading block group descriptor table info from image file.\n");
-            exit(EXIT_FAILURE);
+            exit(EXIT_OTHER_FAILURE);
         }
         
         // Group ID number
@@ -313,7 +311,7 @@ getFreeBlock(void) {
 
             if (nread < 0) {
                 fprintf(stderr, "Error reading free block bitmap info from image file.\n");
-                exit(EXIT_FAILURE);
+                exit(EXIT_OTHER_FAILURE);
             }
             // No more bytes to read from bitmap
             if (nread == 0) {
@@ -360,7 +358,7 @@ getFreeInode(void) {
 
     if (inode_array == NULL) {
         fprintf(stderr, "Error: failed malloc for inode_array.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 
     for (i = 0; i < num_groups; i++) {
@@ -368,7 +366,7 @@ getFreeInode(void) {
         //fprintf(stderr, "%d\n", num_inodes);
         if (inode_array[i] == NULL) {
             fprintf(stderr, "Error: failed malloc for inode_array[%d].\n", i);
-            exit(EXIT_FAILURE);
+            exit(EXIT_OTHER_FAILURE);
         }
     }
 
@@ -386,7 +384,7 @@ getFreeInode(void) {
             nread = pread(image_fd, &inode_bitmap_buf, 1, (block_group[i].g_inode_bitmap * block_size) + j);
             if (nread < 0) {
                 fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
-                exit(EXIT_FAILURE);
+                exit(EXIT_OTHER_FAILURE);
             }
 
             /* Debugging */
@@ -435,12 +433,6 @@ getFreeInode(void) {
     //
     //	}
     //}
-    printf("number of inodes: %d\n", num_inodes);
-    for (k = 0; k < num_inodes; k++) {
-        if (inode_array[0][k] == 1) {
-            printf("Inode number: %d, value: %d\n", k, 1);
-        }
-    }
 }
 
 void
@@ -464,14 +456,14 @@ getInodeAndDirectory(void) {
     
     if (inode_table == NULL) {
         fprintf(stderr, "Error: failed malloc for inode_table.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 
     for (i = 0; i < num_groups; i++) {
         inode_table[i] = (struct ext2_inode *) malloc(sizeof(struct ext2_inode) * num_inodes);
         if (inode_table[i] == NULL) {
             fprintf(stderr, "Error: failed malloc for inode_table[%d].\n", i);
-            exit(EXIT_FAILURE);
+            exit(EXIT_OTHER_FAILURE);
         }
     }
 
@@ -491,10 +483,11 @@ getInodeAndDirectory(void) {
                 nread = pread(image_fd, &inode_table[i][j], INODE_SIZE, (block_group[i].g_inode_table * block_size) + (j * INODE_SIZE));
                 if (nread < 0) { 
                     fprintf(stderr, "Error reading free inode bitmap info from image file.\n");
-                    exit(EXIT_FAILURE);
+                    exit(EXIT_OTHER_FAILURE);
                 }                
 
                 /* Debugging */
+                /*
                 printf("Inode Number: %d\n", j + 1);
                 printf("Inode file type and mode: %d\n", inode_table[i][j].i_mode);
                 printf("Inode Owner: %d\n", inode_table[i][j].i_uid);
@@ -505,7 +498,7 @@ getInodeAndDirectory(void) {
                 printf("Inode Access Time: %d\n", inode_table[i][j].i_atime);
                 printf("Inode Size: %d\n", inode_table[i][j].i_size);
                 printf("Inode Blocks: %d\n", inode_table[i][j].i_blocks);
-				
+				*/
             }
         }
     }
@@ -629,7 +622,7 @@ printInodeAndDirectoryCSVRecord(void) {
                 			nread = pread(image_fd, &directory, sizeof(struct ext2_dir_entry), (inode_table[i][j].i_block[k] * block_size) + offset);
                				if (nread < 0) { 
                     			fprintf(stderr, "Error reading block directory info from image file.\n");
-                    			exit(EXIT_FAILURE);
+                    			exit(EXIT_OTHER_FAILURE);
                				}   
 
                             // Check to see that the data block is valid
@@ -676,8 +669,11 @@ printInodeAndDirectoryCSVRecord(void) {
                         // Inode 14: Missing indirect files (49, 54, 58, 59, and b.3DVN...)
                         // Inode 86: Missing indirect files (90, 109, 128, 136, 139)
                         // Inode 179: All indirect files found
-                        int flag = 1;
                         pread(image_fd, &num_block, sizeof(__u32), indirect_block);
+                        if (nread < 0) { 
+                                fprintf(stderr, "Error reading indirect block info from image file.\n");
+                                exit(EXIT_OTHER_FAILURE);
+                        } 
                         while (num_block != 0) {
                             // Read in the block number
                             address = num_block * block_size;
@@ -685,7 +681,11 @@ printInodeAndDirectoryCSVRecord(void) {
                             int offset = 0;
                             while (offset < block_size) {//offset < block_size) {
                                 pread(image_fd, &directory, sizeof(struct ext2_dir_entry), address + offset);
-                                
+                                if (nread < 0) { 
+                                    fprintf(stderr, "Error reading indirect block directory info from image file.\n");
+                                    exit(EXIT_OTHER_FAILURE);
+                                } 
+
                                 /* Debugging */
                                 /*
                                 if (directory.inode==0) {
@@ -718,8 +718,15 @@ printInodeAndDirectoryCSVRecord(void) {
                                     printf("why me: %s\n", directory.name);
                                 }
                             }
+                            // Each indirect block entry is separated by a 32-bit block number
                             increment += sizeof(__u32);
+
+                            // Read in the next offset
                             pread(image_fd, &num_block, sizeof(__u32), indirect_block + increment);
+                            if (nread < 0) { 
+                                fprintf(stderr, "Error reading indirect block directory info from image file.\n");
+                                exit(EXIT_OTHER_FAILURE);
+                            } 
                         }
                     }
                 }
@@ -731,7 +738,6 @@ printInodeAndDirectoryCSVRecord(void) {
 ////////////////////////////////////////////////////////////////////////////
 //////////////////////////// Indirect Block References /////////////////////
 ////////////////////////////////////////////////////////////////////////////
-
 int
 printIndirectCSVRecord(int fileOffset, int iniBlockNum, int i, int j) {
     // Print to STDOUT indirect block references CSV record
@@ -749,7 +755,7 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int i, int j) {
 
     if (pread(image_fd, singleIndirBlocks, block_size, iniBlockNum*block_size) < 0) {
         fprintf(stderr, "Error reading single indirect blocks from image file.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 
     for (k = 0; k < totalBlockNum; k++) {
@@ -775,7 +781,7 @@ int checkDoubleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j) {
 
     if (pread(image_fd, doubleIndirBlocks, block_size, iniBlockNum*block_size) < 0) {
         fprintf(stderr, "Error reading double indirect blocks from image file.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 
     for (k = 0; k < totalBlockNum; k++) {
@@ -800,7 +806,7 @@ int checkTripleIndirectBlock (int fileOffset, int iniBlockNum, int i, int j) {
 
     if (pread(image_fd, tripleIndirBlocks, block_size, iniBlockNum*block_size) < 0) {
         fprintf(stderr, "Error reading double indirect blocks from image file.\n");
-        exit(EXIT_FAILURE);
+        exit(EXIT_OTHER_FAILURE);
     }
 
     for (k = 0; k < totalBlockNum; k++) {
