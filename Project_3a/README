@@ -9,11 +9,16 @@ Identification:
 
 Description of included files (Features):
 —————————————————————————————————————————
-(1) lab3a.c
+(1) lab3a.c: 
   A C source module that compiles into a C program that analyzes and 
   summarizes the contents of a file system.
 
-(2) Makefile: To build the program (lab3a), but also has two other 
+(2) ext2_fs.h
+  Simplied version of the Linux header file that defines the format 
+  of the EXT2 file system provided in the spec
+
+
+(3) Makefile: To build the program (lab3a), but also has two other 
 targets: dist (to make the tarball), and clean (to remove all 
 generated programs and output).
 
@@ -35,8 +40,8 @@ Citations and Research:
 - The websites recommended for studying before beginning the project were
   the main source I used when implementing this project.
 
-(3) README
-This README file contains identification information, description of 
-the files included in the tarball, brief answers to each of the 
-questions in the spec, as well as citation of resources that I used 
-to help me implement the program.
+ (4) README
+  This README file contains identification information, description of 
+  the files included in the tarball, brief answers to each of the 
+  questions in the spec, as well as citation of resources that I used 
+  to help me implement the program.

@@ -10,7 +10,7 @@
 
 CC = gcc
 CFLAGS = -g
-AUX = Makefile README lab3a.c 
+AUX = Makefile README lab3a.c ext2_fs.h
 TARBALL_NAME = lab3a-404640158.tar.gz
 
 default:
