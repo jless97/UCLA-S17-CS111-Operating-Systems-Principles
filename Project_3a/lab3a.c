@@ -617,23 +617,23 @@ printInodeAndDirectoryCSVRecord(void) {
                         if (directory.inode == 0)
                             break;
 
+                        __u32 num_block;
+                        // Address of the indirect block
+                        int indirect_block = inode_table[i][j].i_block[k] * block_size;
+                        int increment = 0;
+                        int address = 0;
+
                         /* Debugging */
                         // Address of the indirect block
                         // Indirect block: Block 1014
                         //__u32 test;
                         // First block: 1015, Second block: 1016, Third Block: 145, Fourth Block: 146
-                        //pread(image_fd, &test, sizeof(__u32), indirect_block + sizeof(__u32) + sizeof(__u32) + sizeof(__u32));
+                        //pread(image_fd, &test, sizeof(__u32), indirect_block + (sizeof(__u32) * 20));
                         //printf("Testing: %d\n", test);
 
-
-                        __u32 num_block = 1;
-                        // Address of the indirect block
-                        int indirect_block = inode_table[i][j].i_block[k] * block_size;
-                        int increment = 0;
-                        int address = 0;
+                        pread(image_fd, &num_block, sizeof(__u32), indirect_block);
                         while (num_block != 0) {
                             // Read in the block number
-                            pread(image_fd, &num_block, sizeof(__u32), indirect_block + increment);
                             address = num_block * block_size;
                             int offset = 0;
                             while (offset < block_size) {
@@ -657,6 +657,7 @@ printInodeAndDirectoryCSVRecord(void) {
                                 offset += directory.rec_len;
                             }
                             increment += sizeof(__u32);
+                            pread(image_fd, &num_block, sizeof(__u32), indirect_block + increment);
                         }
                     }
                 }
