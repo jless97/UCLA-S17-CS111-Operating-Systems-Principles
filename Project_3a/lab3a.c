@@ -365,6 +365,7 @@ getFreeInode(void) {
 
     for (i = 0; i < num_groups; i++) {
         inode_array[i] = (int *) malloc(sizeof(int) * num_inodes);
+        //fprintf(stderr, "%d\n", num_inodes);
         if (inode_array[i] == NULL) {
             fprintf(stderr, "Error: failed malloc for inode_array[%d].\n", i);
             exit(EXIT_FAILURE);
@@ -379,9 +380,8 @@ getFreeInode(void) {
     
     ssize_t nread;
     for (i = 0; i < num_groups; i++) {
-        j = 0;
         k = 0;
-        while (j != num_inodes) {
+        for (j = 0; j < ceil(num_inodes/8); j++) {
             inode_bitmap_buf = 0;
             nread = pread(image_fd, &inode_bitmap_buf, 1, (block_group[i].g_inode_bitmap * block_size) + j);
             if (nread < 0) {
@@ -400,17 +400,19 @@ getFreeInode(void) {
             else {
                 bit_size = 8;
             }
+            //fprintf(stdout, "%d\n", inode_bitmap_buf);
             while (bit_size != 0) {
                 // If the bit being checked is a 0, then the corresponding block is free
                 if ((inode_bitmap_buf & bitmask) == 0) {
                     // Set portion of inode array to note that inode block is free
                     inode_array[i][k] = 0;
-                    
+                    //fprintf(stdout, "k = %d, num_block = %d, inode_array[%d][%d] = %d\n", k, num_block, i, j, inode_array[i][j]);
                     printFreeInodeCSVRecord(num_block);
                 }
                 // Set portion of inode array to note that inode block is allocated
                 else {
                     inode_array[i][k] = 1;
+                    //fprintf(stdout, "k = %d, num_block = %d, inode_array[%d][%d] = %d\n", k, num_block, i, j, inode_array[i][j]);
                 }
                 // Shift the bits to the right by 1 to read next bit
                 inode_bitmap_buf = inode_bitmap_buf >> 1;
@@ -418,10 +420,9 @@ getFreeInode(void) {
                 num_block++;
                 // Decrement the bit size as a bit was just read
                 bit_size--;
-                // Increment the position within the inode_array        		
+                // Increment the position within the inode_array                
                 k++;
             }
-            j++;
         }
         // Reset block number for next block group
         num_block = 0;
@@ -701,7 +702,7 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
 
     // get block size for offset
     int k, block_size = 1024 << super_block.s_log_block_size;
-    
+
     // each block takes up 4 bits of the block size
     int totalBlockNum = block_size/4;    // should be 256
 
