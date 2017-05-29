@@ -219,6 +219,11 @@ getBlockGroup(void) {
     // Create block group array
     block_group = (struct p3_block_group *) malloc(sizeof(struct p3_block_group) * num_groups);
     
+    if (block_group == NULL) {
+        fprintf(stderr, "Error: failed malloc for block_group.\n");
+        exit(EXIT_FAILURE);
+    }
+
     ssize_t nread;
     int i, last_group = num_groups - 1;
     for (i = 0; i < num_groups; i++) {
@@ -352,8 +357,18 @@ getFreeInode(void) {
     // Initialize the inode free/allocated array
     num_inodes = super_block.s_inodes_per_group;
     inode_array = (int **) malloc(sizeof(int *) * num_groups);
+
+    if (inode_array == NULL) {
+        fprintf(stderr, "Error: failed malloc for inode_array.\n");
+        exit(EXIT_FAILURE);
+    }
+
     for (i = 0; i < num_groups; i++) {
         inode_array[i] = (int *) malloc(sizeof(int) * num_inodes);
+        if (inode_array[i] == NULL) {
+            fprintf(stderr, "Error: failed malloc for inode_array[%d].\n", i);
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* Debugging */
@@ -439,8 +454,18 @@ getInodeAndDirectory(void) {
     
     // Create inode table array
     inode_table = (struct ext2_inode **) malloc(sizeof(struct ext2_inode *) * num_groups);
+    
+    if (inode_table == NULL) {
+        fprintf(stderr, "Error: failed malloc for inode_table.\n");
+        exit(EXIT_FAILURE);
+    }
+
     for (i = 0; i < num_groups; i++) {
         inode_table[i] = (struct ext2_inode *) malloc(sizeof(struct ext2_inode) * num_inodes);
+        if (inode_table[i] == NULL) {
+            fprintf(stderr, "Error: failed malloc for inode_table[%d].\n", i);
+            exit(EXIT_FAILURE);
+        }
     }
 
     ssize_t nread;
@@ -675,12 +700,17 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
     // Print to STDOUT indirect block references CSV record
 
     // get block size for offset
-    int k, block_size = super_block.s_log_block_size;
+    int k, block_size = 1024 << super_block.s_log_block_size;
+    
     // each block takes up 4 bits of the block size
     int totalBlockNum = block_size/4;    // should be 256
 
     if (ParentLevel == 3) {
         __u32* tripleIndirBlocks = (__u32*)malloc(block_size);
+
+        if (tripleIndirBlocks == NULL) {
+            fprintf(stderr, "Error: failed malloc for tripleIndirBlocks.\n");
+        }
 
         if (pread(image_fd, tripleIndirBlocks, block_size, inode_table[i][j].i_block[14]*block_size) < 0) {
             fprintf(stderr, "Error reading double indirect blocks from image file.\n");
@@ -697,6 +727,10 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
     if (ParentLevel == 2 && CurrentLevel != 1) {
         __u32* doubleIndirBlocks = (__u32*)malloc(block_size);
 
+        if (doubleIndirBlocks == NULL) {
+            fprintf(stderr, "Error: failed malloc for doubleIndirBlocks.\n");
+        }        
+
         if (pread(image_fd, doubleIndirBlocks, block_size, inode_table[i][j].i_block[13]*block_size) < 0) {
             fprintf(stderr, "Error reading double indirect blocks from image file.\n");
             exit(EXIT_FAILURE);
@@ -710,6 +744,10 @@ printIndirectCSVRecord(int fileOffset, int iniBlockNum, int ParentLevel, int Cur
     }
 
     __u32* singleIndirBlocks = (__u32*)malloc(block_size);
+
+    if (singleIndirBlocks == NULL) {
+        fprintf(stderr, "Error: failed malloc for singleIndirBlocks.\n");
+    }
 
     if (pread(image_fd, singleIndirBlocks, block_size, inode_table[i][j].i_block[12]*block_size) < 0) {
         fprintf(stderr, "Error reading single indirect blocks from image file.\n");
