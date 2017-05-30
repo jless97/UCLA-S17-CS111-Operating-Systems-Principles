@@ -601,13 +601,17 @@ printInodeAndDirectoryCSVRecord(void) {
 
                                 // Add 1 for null-terminating character
                                 // Add 2 for single quotes
-                                char file_name[EXT2_NAME_LEN + 1 + 2];
-                                file_name[0] = '\'';
-                                memcpy(file_name + 1, directory.name, directory.name_len);
-                                file_name[directory.name_len+1] = '\'';
-                                file_name[directory.name_len+2] = '\0';
+                                // If inode isn't 0, process the directory entry
+                                // If inode is 0, that's fine, just move past it
+                                if (directory.inode != 0) {
+                                	char file_name[EXT2_NAME_LEN + 1 + 2];
+                                	file_name[0] = '\'';
+                                	memcpy(file_name + 1, directory.name, directory.name_len);
+                                	file_name[directory.name_len+1] = '\'';
+                                	file_name[directory.name_len+2] = '\0';
 
-                                fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, file_name);
+                                	fprintf(stdout, "%s,%d,%d,%d,%d,%d,%s\n", "DIRENT", j + 1, offset, directory.inode, directory.rec_len, directory.name_len, file_name);
+                            	}
 
                                 // Increment the offset to the next directory entry
                                 offset += directory.rec_len;
