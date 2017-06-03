@@ -1,0 +1,62 @@
+Class:
+superBlock
+inode
+block
+dir entry
+indirect
+freeInode
+freeBlock
+
+//superblock, blcok group descriptor table, block bitmap, inode bitmap, inode table
+isDataBlock (bn) {
+	if bn < 0 or bn > total numOfBlocks
+		return false
+	if bn is superblock or group descriptor
+		return false
+	if bn is a freeList (inode/block) or inode table
+		return false
+
+	return true;
+}
+
+isFreeBlock (bn) {
+	if isDataBlock(bn) == false
+		return false;
+	else 
+		return true/false (freeblock bitmap);
+}
+
+is Freeinoe (in) {
+	if (in > 2 && first non-reserved inode) }} in < total number of inodes
+		return false
+	return T/F (freeubide butnao)
+}
+
+for all blocks b:
+	if isDataBlock(b) == false
+		b is reserved
+	else isFreeBlock(b)
+	bis Free(block state)
+
+	root's parent is root
+
+checkHlock (bn) {
+	if bn < 0 || bn > total block num
+		bis INVALID
+}
+
+For all indirect block pointers
+	//check if INVALID
+	//FREE Used
+
+For all DataBlocks
+	(isDataBlock(bn) == True)
+		if bn FREE/USED/DUP
+			UNREF
+		if DUP
+			DUPLICATE
+
+For all inode inode i:
+	//an inode is allocated
+		if mode > 0 && linkcount > 0
+			ALLOCATED

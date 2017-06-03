@@ -1,0 +1,106 @@
+
+ifDataBlock (int bn){
+	If bn < 0 or bn > totoal num blocks 
+		Return false;
+	If bn is superblock or groupdes
+		Return false
+	If bn is a free list 
+		Return false
+}
+
+
+IfFreeBlock (bn){
+	Ifis datablock == false
+		Return false
+	Else
+		If (freeblock bitmap == true)
+			Return true
+		Return false 
+}
+
+Q: why is it greater than 2 ?
+IsFreeNode (in) {
+	If (in) > 2 and < first non reserved inode number  (you get this from super block)
+		Return false;
+	If in > total number in disk 
+		Return flase
+	Check inode bitmap and return accordingly 
+}
+
+For all blocks b 
+	If isDataBlock (b) == false 
+		B is RESERVED                 // superblock is reserved 
+	Else if (isFreeBlock (b))
+		B is free 
+		
+		
+Cheeck Block (bn ){ 
+	If bn < 0 || bn > totalnumofblocks
+		B is invalid
+}
+
+For all inodes 
+	If mode == 0|| if linkcount == 0 
+		Skip 
+	// this is whats left Mode > 0 and linkcount > 0 
+	// check all 15 pointers
+	For each pointers, 
+		//CheckIfInValid 
+		If ptr ! = 0 
+			checkBlock ()
+		If ptr !- RESERVED && ptr != Free && != USED
+			Ptr is USED
+		Else ptr == USED
+			Ptr is DUPLICATED
+		Else if ptr == FREE
+			ALLOCATED BLOCK ON FREE LIST
+		If ptr == INVALID || RESERVED 
+			INVALID / RESERVED Block 
+		Else 
+			Ptr is USED
+			
+	For all indirect block ptrs 
+		//ChcekIfValid 
+		// free USED
+		
+		If Invalid or RESERVED 
+		// Be careful about the level , directly related not the top root level 
+		
+	For all DataBlocks 
+		isDataBlock (bn) == True 
+		If bn ! FREE/USED/DUP 
+			UNREFERENCED 
+		If DUP
+			DUPLICATED 
+		
+	For all Inode
+		// an inode is allocated
+		If node > 0 && linkcount > 0
+			ALLOCATED 
+			
+		// It should be on the freelist, if it is not then output something 
+		Linkcount compare with linkcount array ? 
+			
+			
+			
+			
+			
+			
+			
+	// DIRECTORY CONSISTANCY 
+	
+	For each directory de 
+		If de inodenum ? Total inode num 
+		INVALID
+	// if UNallocated 
+		Linkcount [de inode num ] ++;
+		If de is not '.' or '..'
+			Parent [de inode num] = de.parent inode number 
+			
+		// '.' make sure this inode is equal to parent inode number. Compare if the same
+		
+		// '..'  don’t check this before generating parent directory array
+		// make sure its inode is equal to parents 
+		// you need to compare inode number equals the grandparent which is in a array 
+		
+		//link count . For each inode compare inode
