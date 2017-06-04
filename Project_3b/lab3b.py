@@ -12,11 +12,11 @@ class superBlock:
 
 	def __init__(self, totalNumBlocks=0, totalNumInodes=0, blockSize=0, inodeSize=0, blocksPerGroup=0, inodesPerGroup=0):
 		self.totalNumBlocks__ = int(totalNumBlocks)
-		self.totalNumInodes__ = totalNumInodes
-		self.blockSize__ = blockSize
-		self.inodeSize__ = inodeSize
-		self.blocksPerGroup__ = blocksPerGroup
-		self.inodesPerGroup__ = inodesPerGroup
+		self.totalNumInodes__ = int(totalNumInodes)
+		self.blockSize__ = int(blockSize)
+		self.inodeSize__ = int(inodeSize)
+		self.blocksPerGroup__ = int(blocksPerGroup)
+		self.inodesPerGroup__ = int(inodesPerGroup)
 
 class inode:
 	inodeNum__ = 0
@@ -27,12 +27,12 @@ class inode:
 	linkCount__ = 0
 
 	def __init__(self, inodeNum, fileType, mode, owner, group, linkCount):
-		self.inodeNum__ = inodeNum
+		self.inodeNum__ = int(inodeNum)
 		self.fileType__ = fileType
 		self.mode__ = mode
 		self.owner__ = owner
-		self.group__ = group
-		self.linkCount__ = linkCount
+		self.group__ = int(group)
+		self.linkCount__ = int(linkCount)
 
 class dataBlock:
 	blockNum__ = 0
@@ -43,8 +43,8 @@ class dataBlock:
 	def __init__(self, blockNum, blockType, inodeNum, offset):
 		self.blockNum__ = int(blockNum)
 		self.blockType__ = blockType
-		self.inodeNum__ = inodeNum
-		self.offset__ = offset
+		self.inodeNum__ = int(inodeNum)
+		self.offset__ = int(offset)
 
 freeBlocks = []
 freeInodes = []
@@ -52,8 +52,9 @@ dataBlocks = []
 indirBlocks = []
 
 def isFreeBlock(bn) :
-	for blocks in freeBlocks:
-		if (blocks == bn):
+	for block in freeBlocks:
+		#print("datablock = {} freeblock = {}".format(bn, block))
+		if (block == bn):
 			return True
 	return False
 
@@ -68,6 +69,11 @@ def isDataBlock(bn,sb) :
 			return 4
 	return 1 # is a data block
 
+def isAllocated(bn) :
+	for allocated in dataBlocks:
+		if (bn == allocated.blockNum__):
+			return True
+	return False
 
 def checkBlocks(sb):
 	cur = 0
@@ -76,8 +82,6 @@ def checkBlocks(sb):
 			print("INVALID {} {} IN INODE {} AT OFFSET {}".format(block.blockType__, block.blockNum__, block.inodeNum__, block.offset__))
 		elif (isDataBlock(block.blockNum__, sb) == 3):
 			print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(block.blockType__, block.blockNum__, block.inodeNum__, block.offset__))
-		elif ((isDataBlock(block.blockNum__, sb) != 1) and (isFreeBlock(bn) == False)):
-			print("UNREFERENCED BLOCK {}".format(block.blockNum__))
 		elif(isFreeBlock(block.blockNum__)):
 			print("ALLOCATED BLOCK {} ON FREELIST".format(block.blockNum__))
 		else:
@@ -87,6 +91,12 @@ def checkBlocks(sb):
 					print("DUPLICATE {} {} IN INODE {} AT OFFSET {}".format(otherBlock.blockType__, otherBlock.blockNum__, otherBlock.inodeNum__, otherBlock.offset__))
 				next += 1
 		cur += 1
+
+	end = sb.totalNumBlocks__
+	for allBlocks in range (0, end):
+		if ((isFreeBlock(allBlocks) == False) and (isDataBlock(allBlocks, sb) == 1) and (isAllocated(allBlocks) == False)):
+			print("UNREFERENCED BLOCK {}".format(allBlocks))
+
 
 def main():
 	if (len(sys.argv) != 2) :
@@ -111,11 +121,11 @@ def main():
 		elif (line[0:5] == "BFREE"):
 			line = line.strip()
 			fbn = line.split(',')	# free block number
-			freeBlocks.append(fbn[1])
+			freeBlocks.append(int(fbn[1]))
 		elif (line[0:5] == "IFREE"):
 			line = line.strip()
 			fin = line.split(',') # free inode number
-			freeInodes.append(fin[1])
+			freeInodes.append(int(fin[1]))
 		# store dataBlock block number, and types of blocks
 		elif (line[0:5] == "INODE"):
 			line = line.strip()
@@ -137,7 +147,7 @@ def main():
 				dataBlocks.append(db)
 			if (inodeInfo[26] != '0'):
 				#print(inodeInfo[26])
-				db = dataBlock(inodeInfo[26], "TRIPPLE INDIRECT BLOCK", inodeInfo[1], 12+256+256*256)
+				db = dataBlock(inodeInfo[26], "TRIPLE INDIRECT BLOCK", inodeInfo[1], 12+256+256*256)
 				dataBlocks.append(db)
 		elif (line[0:8] == "INDIRECT"):
 			line = line.strip()
@@ -154,10 +164,13 @@ def main():
 				db = dataBlock(indirInfo[5], "DOUBLE INDIRECT BLOCK", indirInfo[1], indirInfo[3])
 				dataBlocks.append(db)
 
-	#for db in dataBlocks:
-	#	print(db.blockNum__)
-	#print (sb.totalNumBlocks__)
 	checkBlocks(sb)
+	'''
+	for db in dataBlocks:
+		print(db.blockNum__)
+	for b in freeBlocks:
+		print(b)'''
+	#print (sb.totalNumBlocks__)
 
 
 if __name__ == "__main__": main()
