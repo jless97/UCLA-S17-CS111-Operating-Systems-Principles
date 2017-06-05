@@ -11,8 +11,6 @@ class superBlock:
 	inodesPerGroup__ = 0
 
 	def __init__(self, totalNumBlocks=0, totalNumInodes=0, blockSize=0, inodeSize=0, blocksPerGroup=0, inodesPerGroup=0):
-		# These are setting the info for superBlock
-		# Use of explicit cast of the objects provided to int values
 		self.totalNumBlocks__ = int(totalNumBlocks)
 		self.totalNumInodes__ = int(totalNumInodes)
 		self.blockSize__ = int(blockSize)
