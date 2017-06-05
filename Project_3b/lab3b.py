@@ -11,6 +11,8 @@ class superBlock:
 	inodesPerGroup__ = 0
 
 	def __init__(self, totalNumBlocks=0, totalNumInodes=0, blockSize=0, inodeSize=0, blocksPerGroup=0, inodesPerGroup=0):
+		# These are setting the info for superBlock
+		# Use of explicit cast of the objects provided to int values
 		self.totalNumBlocks__ = int(totalNumBlocks)
 		self.totalNumInodes__ = int(totalNumInodes)
 		self.blockSize__ = int(blockSize)
@@ -50,6 +52,7 @@ freeBlocks = []
 freeInodes = []
 dataBlocks = []
 indirBlocks = []
+inodes = []
 
 def isFreeBlock(bn) :
 	for block in freeBlocks:
@@ -97,6 +100,27 @@ def checkBlocks(sb):
 		if ((isFreeBlock(allBlocks) == False) and (isDataBlock(allBlocks, sb) == 1) and (isAllocated(allBlocks) == False)):
 			print("UNREFERENCED BLOCK {}".format(allBlocks))
 
+def isFreeInode(sb) :
+	allocated = []
+	unallocated = []
+
+	for inode in inodes:
+		#if inode.fileType__ == 'f' or inode.fileType__ == 'd':
+		allocated.append(inode)
+
+	for inode in allocated:
+		#print("allocated inode: ", inode)
+		if inode in freeInodes:
+			print("ALLOCATED INODE", inode, "ON FREELIST")
+
+	for inode in freeInodes:
+		if inode not in allocated:
+			unallocated.append(inode)
+
+	for inode in range(1, sb.totalNumInodes__):
+		if inode not in unallocated and inode not in allocated:
+			if inode > 10:
+				print("UNALLOCATED INODE", inode, "NOT ON FREELIST")
 
 def main():
 	if (len(sys.argv) != 2) :
@@ -130,6 +154,11 @@ def main():
 		elif (line[0:5] == "INODE"):
 			line = line.strip()
 			inodeInfo = line.split(',')
+			# Every INODE line add to the inode list
+			#inode_elem = inode(inodeInfo[1], inodeInfo[2], inodeInfo[3], inodeInfo[4], inodeInfo[5], inodeInfo[6]);
+			#inodes.append(inode_elem)
+			inodes.append(inodeInfo[1])
+
 			cur = 12
 			for bn in inodeInfo[cur:24]:
 				if (bn != '0'):
@@ -165,6 +194,8 @@ def main():
 				dataBlocks.append(db)
 
 	checkBlocks(sb)
+
+	isFreeInode(sb)
 	'''
 	for db in dataBlocks:
 		print(db.blockNum__)
