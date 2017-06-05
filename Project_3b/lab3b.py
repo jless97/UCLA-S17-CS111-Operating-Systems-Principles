@@ -103,8 +103,8 @@ def isFreeInode(sb) :
 	unallocated = []
 
 	for inode in inodes:
-		#if inode.fileType__ == 'f' or inode.fileType__ == 'd':
-		allocated.append(inode)
+		if inode.fileType__ == 'f' or inode.fileType__ == 'd':
+			allocated.append(inode.inodeNum__)
 
 	for inode in allocated:
 		#print("allocated inode: ", inode)
@@ -153,9 +153,8 @@ def main():
 			line = line.strip()
 			inodeInfo = line.split(',')
 			# Every INODE line add to the inode list
-			#inode_elem = inode(inodeInfo[1], inodeInfo[2], inodeInfo[3], inodeInfo[4], inodeInfo[5], inodeInfo[6]);
-			#inodes.append(inode_elem)
-			inodes.append(inodeInfo[1])
+			inode_elem = inode(inodeInfo[1], inodeInfo[2], inodeInfo[3], inodeInfo[4], inodeInfo[5], inodeInfo[6]);
+			inodes.append(inode_elem)
 
 			cur = 12
 			for bn in inodeInfo[cur:24]:
