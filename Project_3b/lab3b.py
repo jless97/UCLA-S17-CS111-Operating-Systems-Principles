@@ -254,11 +254,15 @@ def main():
 			dirEnt = directory(dirInfo[1], dirInfo[3], dirInfo[6])
 			directories.append(dirEnt)
 
-	checkBlocks(sb)
 
-	isFreeInode(sb)
+	for block in dataBlocks:
+		print("block number = {} inode number = {}".format(block.blockNum__, block.inodeNum__))
 
-	checkDirectory(sb)
+	#checkBlocks(sb)
+
+	#isFreeInode(sb)
+
+	#checkDirectory(sb)
 	'''
 	for db in dataBlocks:
 		print(db.blockNum__)
