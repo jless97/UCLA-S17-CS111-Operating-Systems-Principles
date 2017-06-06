@@ -215,10 +215,10 @@ def main():
 			inode_elem = inode(inodeInfo[1], inodeInfo[2], inodeInfo[3], inodeInfo[4], inodeInfo[5], inodeInfo[6]);
 			inodes.append(inode_elem)
 
-			cur = 12
+			cur = 11
 			for bn in inodeInfo[cur:24]:
 				if (bn != '0'):
-					#print(bn)
+					print(bn)
 					db = dataBlock(bn, "BLOCK", inodeInfo[1], cur-12)
 					dataBlocks.append(db)
 				cur += 1
