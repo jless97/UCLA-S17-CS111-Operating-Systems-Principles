@@ -56,22 +56,14 @@ class directory:
 		self.refInode__ = int(refInode)
 		self.dirName__ = dirName
 
-class parentDirectory:
-	parentInode__ = 0
-	childDir = []
-
-	def __init__(self, parentInode, child):
-		self.parentInode__ = int(parentInode)
-		self.childDir.append(int(child))
-
-
 freeBlocks = []
 freeInodes = []
 dataBlocks = []
 indirBlocks = []
 inodes = []
 directories = []
-parentDir = []
+parentMap = []
+childMap = []
 
 def isFreeBlock(bn) :
 	for block in freeBlocks:
@@ -141,27 +133,15 @@ def isFreeInode(sb) :
 			if inode > 10:
 				print("UNALLOCATED INODE", inode, "NOT ON FREELIST")
 
-# create parent directory array that stores each parent with a list of its child
-def createParentDir():
+# create parent directory map
+def createMaps():
 	for dirEnt in directories:
-		foundParent = 0
-		for parent in parentDir:
-			if (parent.parentInode__ == dirEnt.parentInode__):
-				foundChild = 0
-				for child in parent.childDir:
-					if (child == dirEnt.refInode__):
-						foundChild = 1
-				if (foundChild == 0):
-					parent.childDir.append(dirEnt.refInode__)
-					print("parent inode = {} child = {}".format(parent.parentInode__, dirEnt.refInode__))
-				foundParent = 1
-				break
-		if (foundParent == 0):
-			pa = parentDirectory(dirEnt.parentInode__, dirEnt.refInode__)
-			print("parent inode = {} child = {}".format(pa.parentInode__, dirEnt.refInode__))
-			parentDir.append(pa)
+		parentMap[dirEnt.parentInode__].append(dirEnt.refInode__)
+		childMap[dirEnt.refInode__] = dirEnt.parentInode__
 
 def checkDirectory(sb) :
+	parentMap = [[None]]*sb.totalNumInodes__
+	childMap = [None]*sb.totalNumInodes__
 	# check link counts
 	for inode in inodes:
 		links = inode.linkCount__
@@ -172,7 +152,7 @@ def checkDirectory(sb) :
 		if count != links:
 			print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(inode.inodeNum__, count, inode.linkCount__))
 
-	createParentDir()
+	createMaps()
 
 	# check if referenced inodes are valid/allocated/correct
 	for directory in directories:
@@ -183,18 +163,16 @@ def checkDirectory(sb) :
 		# '..' should link to the parent
 		if (directory.dirName__ == "'..'"):
 			# check the children list in all parent inode
-			for parent in parentDir:
-				print("parentInode = {} children = {}".format(parent.parentInode__, parent.childDir))
-				foundChild = 0
-				for child in parent.childDir:
+			foundChild = 0
+			if (parentMap[directory.refInode__] != [None]):
+				for child in parentMap[directory.refInode__]:
 					if (child == directory.parentInode__):
 						foundChild = 1
 						break
-				if ((foundChild == 0) and (parent.parentInode__ == directory.refInode__)):
+				if (foundChild == 0):
 					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
-					break
-				if ((foundChild == 1) and (parent.parentInode__ != directory.refInode__)):
-					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, parent.parentInode__))
+				if ((childMap[directory.parentInode__] != directory.refInode__) and (childMap[directory.parentInode__ != None])):
+					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, childMap[directory.parentInode__]))
 
 		allocated = 0
 		if ((directory.refInode__ > sb.totalNumInodes__) or (directory.refInode__ < 0)) :
