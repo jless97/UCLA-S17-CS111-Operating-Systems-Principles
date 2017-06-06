@@ -46,11 +46,32 @@ class dataBlock:
 		self.inodeNum__ = int(inodeNum)
 		self.offset__ = int(offset)
 
+class directory:
+	parentInode__ = 0
+	refInode__ = 0
+	dirName__ = ""
+
+	def __init__(self, parentInode, refInode, dirName):
+		self.parentInode__ = int(parentInode)
+		self.refInode__ = int(refInode)
+		self.dirName__ = dirName
+
+class parentDirectory:
+	parentInode__ = 0
+	childDir = []
+
+	def __init__(self, parentInode, child):
+		self.parentInode__ = int(parentInode)
+		self.childDir.append(int(child))
+
+
 freeBlocks = []
 freeInodes = []
 dataBlocks = []
 indirBlocks = []
 inodes = []
+directories = []
+parentDir = []
 
 def isFreeBlock(bn) :
 	for block in freeBlocks:
@@ -119,6 +140,73 @@ def isFreeInode(sb) :
 		if inode not in unallocated and inode not in allocated:
 			if inode > 10:
 				print("UNALLOCATED INODE", inode, "NOT ON FREELIST")
+
+# create parent directory array that stores each parent with a list of its child
+def createParentDir():
+	for dirEnt in directories:
+		foundParent = 0
+		for parent in parentDir:
+			if (parent.parentInode__ == dirEnt.parentInode__):
+				foundChild = 0
+				for child in parent.childDir:
+					if (child == dirEnt.refInode__):
+						foundChild = 1
+				if (foundChild == 0):
+					parent.childDir.append(dirEnt.refInode__)
+					print("parent inode = {} child = {}".format(parent.parentInode__, dirEnt.refInode__))
+				foundParent = 1
+				break
+		if (foundParent == 0):
+			pa = parentDirectory(dirEnt.parentInode__, dirEnt.refInode__)
+			print("parent inode = {} child = {}".format(pa.parentInode__, dirEnt.refInode__))
+			parentDir.append(pa)
+
+def checkDirectory(sb) :
+	# check link counts
+	for inode in inodes:
+		links = inode.linkCount__
+		count = 0
+		for dirEnt in directories:
+			if (dirEnt.refInode__ == inode.inodeNum__):
+				count += 1
+		if count != links:
+			print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(inode.inodeNum__, count, inode.linkCount__))
+
+	createParentDir()
+
+	# check if referenced inodes are valid/allocated/correct
+	for directory in directories:
+		#print("parent Inode = {} reference inode = {} name = {}".format(directory.parentInode__, directory.refInode__, directory.dirName__))
+		# '.' should link to the inode itself
+		if ((directory.dirName__ == "'.'") and (directory.refInode__ != directory.parentInode__)):
+			print("DIRECTORY INODE {} NAME '.' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
+		# '..' should link to the parent
+		if (directory.dirName__ == "'..'"):
+			# check the children list in all parent inode
+			for parent in parentDir:
+				print("parentInode = {} children = {}".format(parent.parentInode__, parent.childDir))
+				foundChild = 0
+				for child in parent.childDir:
+					if (child == directory.parentInode__):
+						foundChild = 1
+						break
+				if ((foundChild == 0) and (parent.parentInode__ == directory.refInode__)):
+					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
+					break
+				if ((foundChild == 1) and (parent.parentInode__ != directory.refInode__)):
+					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, parent.parentInode__))
+
+		allocated = 0
+		if ((directory.refInode__ > sb.totalNumInodes__) or (directory.refInode__ < 0)) :
+			print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(directory.parentInode__, directory.dirName__, directory.refInode__))
+			break
+		for inode in inodes:
+			if (inode.inodeNum__ == directory.refInode__):
+				allocated = 1
+				break
+		if (allocated == 0):
+			print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(directory.parentInode__, directory.dirName__, directory.refInode__))
+
 
 def main():
 	if (len(sys.argv) != 2) :
@@ -189,10 +277,17 @@ def main():
 			else:
 				db = dataBlock(indirInfo[5], "DOUBLE INDIRECT BLOCK", indirInfo[1], indirInfo[3])
 				dataBlocks.append(db)
+		elif (line[0:6] == "DIRENT"):
+			line = line.strip()
+			dirInfo = line.split(',')
+			dirEnt = directory(dirInfo[1], dirInfo[3], dirInfo[6])
+			directories.append(dirEnt)
 
 	checkBlocks(sb)
 
 	isFreeInode(sb)
+
+	checkDirectory(sb)
 	'''
 	for db in dataBlocks:
 		print(db.blockNum__)
