@@ -3,10 +3,11 @@
 #ID: 404-640-158 & 304635157
 
 default:
-	python lab3b.python
+	cp lab3b.py lab3b
+	chmod +x lab3b
 
 clean:
-	rm *.txt *.tar.gz
+	rm lab3b *.tar.gz
 
 dist:
 	tar -zcvf lab3b-304635157.tar.gz lab3b.py Makefile README

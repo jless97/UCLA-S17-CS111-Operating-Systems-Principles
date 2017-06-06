@@ -62,8 +62,6 @@ dataBlocks = []
 indirBlocks = []
 inodes = []
 directories = []
-parentMap = []
-childMap = []
 
 def isFreeBlock(bn) :
 	for block in freeBlocks:
@@ -133,12 +131,6 @@ def isFreeInode(sb) :
 			if inode > 10:
 				print("UNALLOCATED INODE", inode, "NOT ON FREELIST")
 
-# create parent directory map
-def createMaps():
-	for dirEnt in directories:
-		parentMap[dirEnt.parentInode__].append(dirEnt.refInode__)
-		childMap[dirEnt.refInode__] = dirEnt.parentInode__
-
 def checkDirectory(sb) :
 	parentMap = [[None]]*sb.totalNumInodes__
 	childMap = [None]*sb.totalNumInodes__
@@ -152,27 +144,28 @@ def checkDirectory(sb) :
 		if count != links:
 			print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(inode.inodeNum__, count, inode.linkCount__))
 
-	createMaps()
-
 	# check if referenced inodes are valid/allocated/correct
 	for directory in directories:
 		#print("parent Inode = {} reference inode = {} name = {}".format(directory.parentInode__, directory.refInode__, directory.dirName__))
 		# '.' should link to the inode itself
 		if ((directory.dirName__ == "'.'") and (directory.refInode__ != directory.parentInode__)):
-			print("DIRECTORY INODE {} NAME '.' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
+			print("DIRECTORY INODE {} NAME '.' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
 		# '..' should link to the parent
 		if (directory.dirName__ == "'..'"):
-			# check the children list in all parent inode
-			foundChild = 0
-			if (parentMap[directory.refInode__] != [None]):
-				for child in parentMap[directory.refInode__]:
-					if (child == directory.parentInode__):
-						foundChild = 1
+			foundParent = 0
+			foundMatch = 0
+			for de in directories:
+				if (de.refInode__ == directory.parentInode__):
+					if (de.parentInode__ != directory.refInode__):
+						print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, de.parentInode__))
 						break
-				if (foundChild == 0):
-					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
-				if ((childMap[directory.parentInode__] != directory.refInode__) and (childMap[directory.parentInode__ != None])):
-					print("DIRECTORY INODE {} NAME '..' LINKED TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, childMap[directory.parentInode__]))
+				if (de.parentInode__ == directory.refInode__):
+					foundParent = 1
+					if (de.refInode__ == directory.parentInode__):
+						foundMatch = 1
+						break
+			if ((foundParent == 1) and (foundMatch == 0)):
+				print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
 
 		allocated = 0
 		if ((directory.refInode__ > sb.totalNumInodes__) or (directory.refInode__ < 0)) :
@@ -239,7 +232,7 @@ def main():
 				dataBlocks.append(db)
 			if (inodeInfo[26] != '0'):
 				#print(inodeInfo[26])
-				db = dataBlock(inodeInfo[26], "TRIPLE INDIRECT BLOCK", inodeInfo[1], 12+256+256*256)
+				db = dataBlock(inodeInfo[26], "TRIPPLE INDIRECT BLOCK", inodeInfo[1], 12+256+256*256)
 				dataBlocks.append(db)
 		elif (line[0:8] == "INDIRECT"):
 			line = line.strip()
