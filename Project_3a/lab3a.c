@@ -590,7 +590,6 @@ printInodeAndDirectoryCSVRecord(void) {
                         while (num_block != 0) {
                             // Read in the block number
                             address = num_block * block_size;
-                            printf("Number of block: %d\n", address / block_size);
                             int offset = 0;
                             while (offset < block_size) {//offset < block_size) {
                                 pread(image_fd, &directory, sizeof(struct ext2_dir_entry), address + offset);
