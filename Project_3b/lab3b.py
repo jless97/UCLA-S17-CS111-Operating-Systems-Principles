@@ -88,23 +88,23 @@ def isAllocated(bn) :
 	return False
 
 def checkBlocks(sb):
-    global exit_status
+    	global exit_status
 	cur = 0
 	for block in dataBlocks:
 		if (isDataBlock(block.blockNum__, sb) == 2):
-            exit_status = 2
+            		exit_status = 2
 			print("INVALID {} {} IN INODE {} AT OFFSET {}".format(block.blockType__, block.blockNum__, block.inodeNum__, block.offset__))
 		elif (isDataBlock(block.blockNum__, sb) == 3):
-            exit_status = 2
+            		exit_status = 2
 			print("RESERVED {} {} IN INODE {} AT OFFSET {}".format(block.blockType__, block.blockNum__, block.inodeNum__, block.offset__))
 		elif(isFreeBlock(block.blockNum__)):
-            exit_status = 2
+            		exit_status = 2
 			print("ALLOCATED BLOCK {} ON FREELIST".format(block.blockNum__))
 		else:
 			next = 0
 			for otherBlock in dataBlocks:
 				if ((block.blockNum__ == otherBlock.blockNum__) and cur != next):
-                    exit_status = 2
+                    			exit_status = 2
 					print("DUPLICATE {} {} IN INODE {} AT OFFSET {}".format(otherBlock.blockType__, otherBlock.blockNum__, otherBlock.inodeNum__, otherBlock.offset__))
 				next += 1
 		cur += 1
@@ -112,11 +112,11 @@ def checkBlocks(sb):
 	end = sb.totalNumBlocks__
 	for allBlocks in range (0, end):
 		if ((isFreeBlock(allBlocks) == False) and (isDataBlock(allBlocks, sb) == 1) and (isAllocated(allBlocks) == False)):
-            exit_status = 2
+            		exit_status = 2
 			print("UNREFERENCED BLOCK {}".format(allBlocks))
 
 def isFreeInode(sb) :
-    global exit_status
+    	global exit_status
 	allocated = []
 	unallocated = []
 
@@ -126,7 +126,7 @@ def isFreeInode(sb) :
 
 	for inode in allocated:
 		if inode in freeInodes:
-            exit_status = 2
+            		exit_status = 2
 			print("ALLOCATED INODE", inode, "ON FREELIST")
 
 	for inode in freeInodes:
@@ -136,11 +136,11 @@ def isFreeInode(sb) :
 	for inode in range(1, sb.totalNumInodes__):
 		if inode not in unallocated and inode not in allocated:
 			if inode > 10:
-                exit_status = 2
+                		exit_status = 2
 				print("UNALLOCATED INODE", inode, "NOT ON FREELIST")
 
 def checkDirectory(sb) :
-    global exit_status
+    	global exit_status
 	parentMap = [[None]]*sb.totalNumInodes__
 	childMap = [None]*sb.totalNumInodes__
 	# check link counts
@@ -151,15 +151,14 @@ def checkDirectory(sb) :
 			if (dirEnt.refInode__ == inode.inodeNum__):
 				count += 1
 		if count != links:
-            exit_status = 2
+           		exit_status = 2
 			print("INODE {} HAS {} LINKS BUT LINKCOUNT IS {}".format(inode.inodeNum__, count, inode.linkCount__))
 
 	# check if referenced inodes are valid/allocated/correct
 	for directory in directories:
-        global exit_status
 		# '.' should link to the inode itself
 		if ((directory.dirName__ == "'.'") and (directory.refInode__ != directory.parentInode__)):
-            exit_status = 2
+            		exit_status = 2
 			print("DIRECTORY INODE {} NAME '.' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
 		# '..' should link to the parent
 		if (directory.dirName__ == "'..'"):
@@ -168,7 +167,7 @@ def checkDirectory(sb) :
 			for de in directories:
 				if (de.refInode__ == directory.parentInode__):
 					if (de.parentInode__ != directory.refInode__):
-                        exit_status = 2
+                        			exit_status = 2
 						print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, de.parentInode__))
 						break
 				if (de.parentInode__ == directory.refInode__):
@@ -177,12 +176,12 @@ def checkDirectory(sb) :
 						foundMatch = 1
 						break
 			if ((foundParent == 1) and (foundMatch == 0)):
-                exit_status = 2
+                		exit_status = 2
 				print("DIRECTORY INODE {} NAME '..' LINK TO INODE {} SHOULD BE {}".format(directory.parentInode__, directory.refInode__, directory.parentInode__))
 
 		allocated = 0
 		if ((directory.refInode__ > sb.totalNumInodes__) or (directory.refInode__ < 0)) :
-            exit_status = 2
+            		exit_status = 2
 			print("DIRECTORY INODE {} NAME {} INVALID INODE {}".format(directory.parentInode__, directory.dirName__, directory.refInode__))
 			break
 		for inode in inodes:
@@ -190,24 +189,21 @@ def checkDirectory(sb) :
 				allocated = 1
 				break
 		if (allocated == 0):
-            exit_status = 2
+            		exit_status = 2
 			print("DIRECTORY INODE {} NAME {} UNALLOCATED INODE {}".format(directory.parentInode__, directory.dirName__, directory.refInode__))
 
 def main():
-    global exit_status
 	if (len(sys.argv) != 2) :
-        exit_status = 1
 		print("Error. Usage: ./lab3b [csv file]", file=sys.stderr)
-    #exit(1)
+    		sys.exit(1)
 	else :
 		filename = sys.argv[1]
 
 	try: 
 		csvFile = open(filename, "r")
 	except:
-        exit_status = 1
 		print("Error: failed opening file {}".format(filename), file=sys.stderr)
-#exit(1)
+		sys.exit(1)
 
 	list = csvFile.readlines();
 
@@ -235,10 +231,7 @@ def main():
 			cur = 11
 			for bn in inodeInfo[cur:24]:
 				if (bn != '0'):
-<<<<<<< HEAD
-=======
 					print(bn)
->>>>>>> 558698aa9fce5a214676bca2bb78fb5a57a26b82
 					db = dataBlock(bn, "BLOCK", inodeInfo[1], cur-12)
 					dataBlocks.append(db)
 				cur += 1
@@ -269,13 +262,6 @@ def main():
 			dirEnt = directory(dirInfo[1], dirInfo[3], dirInfo[6])
 			directories.append(dirEnt)
 
-	checkBlocks(sb)
-
-<<<<<<< HEAD
-	isFreeInode(sb)
-
-	checkDirectory(sb)
-=======
 	#for block in dataBlocks:
 	#	print("block number = {} inode number = {}".format(block.blockNum__, block.inodeNum__))
 
@@ -290,9 +276,8 @@ def main():
 	for b in freeBlocks:
 		print(b)'''
 	#print (sb.totalNumBlocks__)
->>>>>>> 558698aa9fce5a214676bca2bb78fb5a57a26b82
 
-    # Exit status: 0 => success, 1 => errors, 2 => success, but inconsistencies
-    sys.exit(exit_status)
+   	# Exit status: 0 => success, 1 => errors, 2 => success, but inconsistencies
+    	sys.exit(exit_status)
 
 if __name__ == "__main__": main()
