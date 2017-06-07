@@ -232,9 +232,13 @@ def main():
 			inode_elem = inode(inodeInfo[1], inodeInfo[2], inodeInfo[3], inodeInfo[4], inodeInfo[5], inodeInfo[6]);
 			inodes.append(inode_elem)
 
-			cur = 12
+			cur = 11
 			for bn in inodeInfo[cur:24]:
 				if (bn != '0'):
+<<<<<<< HEAD
+=======
+					print(bn)
+>>>>>>> 558698aa9fce5a214676bca2bb78fb5a57a26b82
 					db = dataBlock(bn, "BLOCK", inodeInfo[1], cur-12)
 					dataBlocks.append(db)
 				cur += 1
@@ -267,9 +271,26 @@ def main():
 
 	checkBlocks(sb)
 
+<<<<<<< HEAD
 	isFreeInode(sb)
 
 	checkDirectory(sb)
+=======
+	#for block in dataBlocks:
+	#	print("block number = {} inode number = {}".format(block.blockNum__, block.inodeNum__))
+
+	checkBlocks(sb)
+
+	isFreeInode(sb)
+
+	checkDirectory(sb)
+	'''
+	for db in dataBlocks:
+		print(db.blockNum__)
+	for b in freeBlocks:
+		print(b)'''
+	#print (sb.totalNumBlocks__)
+>>>>>>> 558698aa9fce5a214676bca2bb78fb5a57a26b82
 
     # Exit status: 0 => success, 1 => errors, 2 => success, but inconsistencies
     sys.exit(exit_status)
