@@ -1,0 +1,245 @@
+Identification:
+    NAME: Jason Less
+    EMAIL: jaless1997@gmail.com
+    ID: 404640158
+
+Slip Days Used: 1
+
+Description of included files (Features):
+—————————————————————————————————————————
+(1) lab2_add.c: This C program involves the use of threading to update
+a shared variable by incrementing or decrementing it. This program supports
+several command-line options, which allows yielding or different 
+synchronization methods to take place to deal with the critical section/race
+conditions. As each of the threads increments, and then decrements the 
+shared variable by 1, the final count of the shared variable should be 1,
+given correct synchronization of the program.
+
+(2) lab2_list.c: This C program involves the use of threading to update a
+shared doubly-linked list. The threads perform different operations on the
+list by inserting, looking up, deleting, and getting the length of the list.
+This program also supported yield and synchronization options to present
+another synchronization/race condition problem on a data structure instead
+of a single variable. At the end of the program, the list should have 
+length of 0, given the correct synchronicity of the threads.
+
+(3) SortedList.c: This file consisted of the implementation of the doubly
+linked list (used for lab2_list.c). It was implemented as a circular list,
+and supported insert, lookup, delete, and list length operations. 
+
+(4) SortedList.h: Header file for SortedList.c
+
+(5) lab2_add.csv: A CSV record for different tests ran for lab2_add that
+consisted of the name of the test, number of threads, number of iterations,
+total number of operations, total run time, average run time, and final
+value of the shared variable.
+
+(6) lab2_list.csv: A CSV record for different tests ran for lab2_list that
+consisted of the name of the test, number of threads, number of operations,
+number of lists, total number of operations, total run time, and average
+run time.
+
+(7) lab2_add-1.png: Image showing the number of threads and iterations
+required to generate a failure (w/ and w/o yields).
+
+(8) lab2_add-2.png: Image showing the average time per operation (w/ and
+w/o yields).
+
+(9) lab2_add-3.png: Image showing the average time per operation vs. the
+number of iterations (for a single thread).
+
+(10) lab2_add-4.png: Image showing the threads and iterations that ran
+successfully with yields under each of the different sync options.
+
+(11) lab2_add-5.png: Image showing the average time per (protected) 
+operation vs. the number of threads.
+
+(12) lab2_list-1.png: Image showing the average time per (protected)
+operation vs. the number of iterations
+
+(13) lab2_list-2.png: Image showing the threads and iterations required
+to generate a failure (w/ and w/o yields).
+
+(14) lab2_list-3.png: Image showing the iterations that can run (protected)
+w/o failure.
+
+(15) lab2_list-4.png: Image showing the cost per operation vs. the number
+of threads for the different sync options.
+
+(16) lab2_add.gp: gnuplot data reduction script for lab2_add
+
+(17) lab2_list.gp: gnuplot data reduction script for lab2_list
+
+(18) sample.sh: Test script used to test the programs and generate the .csv
+files
+
+(19) Makefile: To build the programs (lab2_add and lab2_list), but also
+has four other targets: tests (to test and generate the .csv files), graphs
+(to generate the .png files), dist (to make the tarball), and clean (to 
+remove all generated programs and output). 
+
+Testing Methodology:
+————————————————————
+The programs were tested using similar methods to previous projects. After
+each system call, I had prints to stderr in case any failed, with 
+descriptive methods. In addition, when debugging the code, I used printf()
+statements throughout to isolate and track down the problems. Finally, the
+sample.sh test script was used to make sure that the desired output was
+correct and in proper format. 
+
+Citations and Research:
+———————————————————————
+- The TA discussion section/slides, Piazza responses, and man pages for the
+  used APIs were especially useful for this project
+  - A good deal of my concerns (and questions) were answered with fairly 
+    good clarity from other students, and TA’s
+- The websites recommended for studying before beginning the project were
+  the main source I used when implementing this project.
+- To help when creating the doubly-linked list, I referred to Carey 
+  Nachenberg’s slides from CS32. This was the main reference used for the
+  SortedList.c implementation.
+- In addition, a referred to one of my previous projects from CS35L to 
+  make sure that I was passing the threads to the function in the proper
+  way, and looping through in correct increments.
+- Lastly, the Arpaci text was referenced (specially the chapters discussing
+  race conditions and locking methods) when doing this project.
+
+Lab Questions:
+——————————————
+2.1.1 - causing conflicts:
+Why does it take many iterations before errors are seen?
+
+Increasing the number of iterations results in longer times that the 
+threads have to spend in the critical section, which leads to race 
+conditions. Despite the critical section for Part 1 only involving
+updating a shared variable, if the iterations are large, then there
+is a larger chance that threads will overlap in the critical section,
+thus resulting in errors.
+
+Why does a significantly smaller number of iterations so seldom fail?
+
+Smaller number of iterations results in less time that a thread has
+to spend in the critical section. Thus, if there is a small number
+of iterations, then the threads are more likely to complete their
+task quickly before the other threads enter the critical section, thus
+reducing the chance of race conditions.
+
+2.2.2 - cost of yielding:
+Why are the —yield runs so much slower?
+
+When threads yield, they are giving up their CPU time, and allowing other
+threads to run. However, yielding is slower because it comes with the 
+increased overhead of saving the thread’s context, and then making a context
+switch to the next thread. In addition, there is also added time in that
+the scheduler needs to decide which thread to run next. 
+
+Where is the additional time going? 
+
+As stated in the previous answer, the additional time is going to stopping
+the execution of the current thread, saving thread context, and making a 
+context switch to a different thread.
+
+Is it possible to get valid per-operation timings if we are using the 
+-—yield option? If so, explain how. If not, explain why not.
+
+It is not reasonably possible to get valid per-operation timing due to the
+fact that when the thread yields, we don’t know exactly when the thread
+gave up the CPU, and when it was rescheduled to execute. Moreover, with
+all of the yielding occurring, the context switches would create a large
+amount of noise that skews the actual timings.
+
+2.1.3: measurement errors:
+Why does the average cost per operations drop with increasing iterations?
+
+If the number of iterations is relatively small, then the time it takes
+to instantiate the threads imposes a great deal of overhead. In addition,
+smaller iterations means that the time taken for a thread to execute it’s
+operation is small. However, with increasing iterations, this means that
+the overhead imposed by creating the threads is reduced in relation to 
+the longer time it takes for the thread’s to do their operations. Therefore,
+the average cost evens out, and is reduced.
+
+If the cost per iteration is a function of the number of iterations, how
+do we know how many iterations to run (or what the “correct” cost is)?
+
+As shown in lab2_add-3.png, as the number of iterations increases, the
+average cost per operation decreases. In fact, it converges to a certain
+value; and therefore, the number of iterations to run would be the value
+that the the number of iterations converges to as it approaches infinity.
+
+2.1.4: costs of serialization:
+Why do all of the options perform similarly for low number of threads?
+
+They perform similarly due to the fact that the contention for the resource
+(i.e. accessing the critical section) is low due to the low number of
+threads. This ensures that the waiting times for threads is small, or even
+negligible. The low wait time is due to the fact that resource contention
+is low, but also due to the utilization of the multi-core processor, which
+could allow threads to reduce waiting time.
+
+Why do the three protected operations slow down as the number of threads
+rises?
+
+As the number of threads increases, this means that the contention for 
+resources also increases. This increase in resource contention means that
+the protected operations would be busier in that they have to lock the 
+critical section, while another thread is executing. This means that more
+threads will have to wait longer before they can execute their operation,
+which means that the time for the program to complete is slowed down.
+
+2.2.1 - scalability of Mutex:
+Compare the variation in time per mutex-protected operation vs the number
+of threads in Part-1 (adds) and Part-2 (sorted lists).
+
+The time per mutex-protected operation is much larger for the list vs.
+adding to a shared variable. This is due to the fact that the list consists
+of a much larger critical section, than the critical section of adding to
+a shared variable. In this implementation, this requires the use of a 
+coarse-grained lock, which makes it so that a thread holds the lock for a 
+large amount of time. In effect, this makes the other threads have to wait
+for a larger time period, thus slowing down the overall operation time, in
+comparison to the small lock required for the add program.
+
+Comment on the general shape of the curves, and explain why they have this
+shape.
+Comment on the relative rates of increase and differences in the shapes
+of the curves, and offer an explanation for these differences.
+
+In lab2_add-5.png (add), the curve starts off incrementing, and then begins
+to level off, and decrease from around 4-12 threads. On the other hand, in
+lab2_list-4.png (list), the curve is increasing at a consistent rate, and
+never begins to level off. The reason that the add curve begins to level off
+is similar to 2.1.3, in that like iterations, as threads increases, the
+overhead (as discussed previously) begins to be amortized by the costs of
+increasing iterations. However, for the list, the costs are constantly
+rising due to the larger critical section, and larger wait times for
+threads. 
+
+2.2.2 - scalability of spin locks:
+Compare the variation in time per protected operation vs the number of 
+threads for list operations protected by Mutex vs Spin locks.
+
+Spin locks have a larger time per protected operation than for mutexes in
+both the add and list programs. The reason for this is due to the fact that
+spin locks are only useful, if the wait time to enter the critical section
+is relatively short, and if spinning doesn’t actually delay acquiring the
+lock (as spinning burns CPU cycles that can be used by other threads).
+Therefore, as the number of threads increases, the cost also increases, but
+at a larger rate than for mutexes due to the flaws of spinning.
+
+Comment on the general shape of the curves, and explain why they have this
+shape.
+Comment on the relative rates of increase and differences in the shapes
+of the curves, and offer an explanation for these differences.
+
+For add, the curve for mutexes increases, but then begins to level off and
+then decrease from 4 to 12 threads. On the other hand, the spin lock curve
+is increasing sharply. The reason for the difference is (as discussed in
+the last question), that the process of spinning burns CPU cycles, and takes
+time away from other threads wishing to use the CPU, which is slower than
+when using mutexes. For list, the curves for both mutexes and spin locks are
+increasing at fairly steady rates. As the critical section for the list is
+much larger than for adding to a shared variable, it is obvious why the 
+costs are both increasing as the number of threads increases, and
+why spin locks are slower than mutexes (as discussed previously).
+

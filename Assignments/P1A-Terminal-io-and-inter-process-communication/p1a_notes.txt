@@ -1,0 +1,12 @@
+// Discussion 2: 4/14/17
+// Project 1A: Terminal I/O and Inter-Process Communication
+
+- Functions required for the project:
+
+[2. Character at a time]
+- put the keyboard (the file open on file descriptor 0) into character-at-a-time, no-echo mode (also known as non-canonical input mode with no echo). It is suggested that you get the current terminal modes, save them for restoration, and then make a copy with the following changes:
+      ==> termios(3), tcgetattr(3), tcsetattr(3) [Setting the mode character at a time] [For manipulating terminal attributes]
+
+[3. Passing input and output between two processes]
+      ==> fork(2), waitpid(), exec(), pipe(2), kill(2), poll(2)
+

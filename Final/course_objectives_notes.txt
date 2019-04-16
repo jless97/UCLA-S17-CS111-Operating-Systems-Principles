@@ -1,0 +1,479 @@
+================================================================================================================================================================================
+================================================================================================================================================================================
+Topic 10: Deadlocks, Prevention, and Avoidance:
+
+- Non-deadlock bugs:
+The two main types of these such bugs are: 1. atomicity violation bugs and 2. order-violation bugs.
+
+Atomicity-violation bugs:
+This is the problem in which a piece of code is meant to be executed atomically (i.e. all-or-none execution), however, during execution, this atomicity is not enforced. The code could have an “atomicity assumption”, but it doesn’t actually enforce it. To solve the atomicity-violation bug, simply add locks around the critical section to ensure that the section is atomic, before another piece of code (that caused the problem) gets a chance to run.
+
+Order-violation bugs:
+This is the idea that some event is supposed to execute before another (i.e. before-or-after atomicity, actually nah), however, during execution, the ordering is not enforced and in fact the wrong ordering takes place. In this case, the use of condition variables can solve the problem as you set the event to occur after the first event to wait on a condition, in which the condition is the first event completing, which signals to the second event to wake up take the lock, and then execute. 
+
+==========
+- Deadlock bugs:
+Deadlock occurs when thread is holding a lock and waiting for another one; unfortunately, the other thread holding the other lock is waiting for the first thread’s lock, and thus they are locked. 
+
+Why does deadlock occur?:
+With the simple example above, it appears as if deadlock can be easily avoided. However, deadlock usually arises due to complex interactions and dependencies between components. A large system might be very complex and have some obscure circular dependencies. Another reason is due to encapsulation. Software developers are taught to hid details of implementations and thus make software easier to build in a modular way. Unfortunately, this modularity doesn’t cope well with locking, in which a user of a language (say Java) may not know about some order in which to grab locks. For example, if you take the java vector class and the method AddALL(), then deadlock can occur if:
+Vector v1, v2;  
+v1.AddAll(v2);   v2.AddAll(v1);
+If two threads do the AddAlls, then they each grab locks in a reverse order, and thus deadlock can occur. 
+
+========
+- Conditions for deadlock:
+There are four conditions that all must be met for deadlock to occur. If any one of them is not met, deadlock is prevented:
+1. Mutual exclusion => threads claim exclusive control of resources they require (e.g. a lock)
+2. Hold-and-wait => Threads hold resources (e.g. locks) while waiting for other resources (e.g. another lock)
+3. No preemption => Resources (e.g. locks) can’t be forcibly removed from threads holding them
+4. Circular wait => There exists a circular chain of threads such that each thread holds one or more resources (e.g. locks) that are being requested by the next thread in the chain
+
+========
+Prevention:
+
+1. Circular wait:
+Write the locking code such that a circular wait never occurs. This can be achieved by having a “total ordering” on lock acquisition. For example, if there are two locks, you can prevent deadlock by always having threads acquire L1 before L2. In complex systems, total lock ordering may be difficult to achieve, and thus “partial ordering” can be used => where there may be like 10 locks, but we can specify a partial ordering to acquire the locks for 8 of them or something. A possible lock ordering can be achieved by using the “address” of each lock to specify lock acquisition order. 
+
+2. Hold-and-wait:
+This can be avoided by having all locks be acquired at once, and atomically. This could be achieved by having a global prevention lock, which locks being able to grab the other locks, thus if a preemption were to occur, other threads would be locked out from grabbing locks. This idea sucks though, as it requires all locks to be acquired early on (at once) instead of when they are truly needed, which reduces the concurrency.
+
+3. No Preemption:
+Multiple lock acquisition often gets us into trouble when waiting for one lock while we are holding another. The trylock() function could be a potential solution as it either grabs a lock if it is available, or it may try again at a later time. Thus you could write code like:
+top:
+	pthread_mutex_lock(L1);
+	if (pthread_mutex_trylock(L2) != 0) {
+		pthread_mutex_unlock(L1);
+		goto top;
+	}
+This removes the possibility of deadlock, but introduces the new idea of “livelock” => where threads can both be in a sequence where they are trying to acquire locks, but are failing over and over again. Thus, the program isn’t in deadlock, but the code is being repeated over and over again. 
+
+4. Mutual Exclusion:
+Could design data structures without locks => lock-free data structures
+
+========
+- Deadlock avoidance via scheduling:
+For example, given two cores, and 4 threads, and 2 locks: Thread 1 gets both locks, thread 2 gets both locks, thread 3 gets only lock 2, and thread 4 gets no locks. Thus, you could schedule it so that T1 and T2 are never run at the same time, and thus no deadlock occurs. 
+
+========
+- Deadlock detection and recovery:
+This is the process of allowing deadlocks to occur occasionally, and then take some action to recover from them. For example, if an OS froze once a year, you would just reboot it and move on with your work. If deadlocks are rare, then non-solution could be pragmatic. Many database systems employ deadlock detection and recovery techniques. For example, they could have a deadlock detector that runs periodically, building a resource graph, and checking for cycles (i.e. deadlocks). When a deadlock is found, the system is restarted. 
+
+========
+- Reservations:
+Deadlock may occur because a critical resource was exhausted, and for the state to be restored, it must do some operation that it can’t do as it exhausted the resource. In this case, we want deadlock avoidance, which could come in the form of reservations. In which, you decline to grant requests that would put the system into an unsafely resource-depleted state in order to prevent deadlock. 
+
+=========
+- Over-booking:
+In most situations, it is unlikely that all clients will simultaneously request their maximum resource reservations. And for this reason, it is “relatively safe” to rant somewhat more serrations than we actually have (over-booking). 
+
+=========
+- Health monitoring:
+Formal deadlock detection in real systems is difficult to perform, is inadequate to diagnose most hangs, and doesn’t enable us to actually fix the problem (i.e. killing some processes to break the circular dependency, but it would affect the program results). Better techniques exist: 1. health monitoring and 2. managed recovery
+
+Types:
+- Internal monitoring agent watching message traffic or a transaction log to determine whether or not work is continuing
+- Asking clients to submit failure reports to a central monitoring service when a server appears to have become unresponsive
+- Having each server send periodic heart-beat messages to a central health monitoring service
+- Having an external health monitoring service send period test requests to the service that is being monitored
+
+================================================================================================================================================================================
+================================================================================================================================================================================
+Topic 16: Distributed Systems: Goals, Challenges, and approaches:
+
+- Goals:
+
+
+================================================================================================================================================================================
+================================================================================================================================================================================
+Topic 17: Remote Data, Synchronization, Security:
+
+- Local vs. Cloud:
+Local and cloud are very different in that local is well local, and cloud involves the use of remote resources, storage, etc. Local comes with the perks of being fast, if comparing it to cloud, which is slower as the communication or connection is through a remote, perhaps distributed system.
+
+=======
+- Client/server model:
+This is the idea that in a distributed system or distributed file system, you will have some server that controls the file system and a bunch of clients that are connected to it. The server will be servicing a large number of clients that each want to access the file system. There are three general models:
+1. Peer-to-peer in which every system has its own resources and network, but they work together by sharing resources and the network with other systems
+2. Thin client => example our smart phones, which contains just enough resources to make use of the smart phone operations, but most resources are being accessed remotely
+3. Cloud services => everything is remote, and thus performance might be reduced, but the cloud (given you pay the money) can provide any resource that you need.
+
+=======
+- Distributed file systems:
+They are different from local file systems as they are now connected to a ton of clients versus just one. These clients can be anywhere and thus communication is achieved by sending messages over a network between the clients and the server. The goal is that the file system can be accessed by all clients, and that we keep the system in a consistent state. The goals of distributed file systems:
+1. Performance 
+2. Scalability
+3. Robustness
+4. Availability 
+5. Reliability
+6. Security
+7. Consistency
+
+=======
+- Distributed File System Goals:
+For distributed file systems, it is the process of having some remote file system in which there are a bunch of clients connected to it. The remote file system is controlled by
+a server, and has a bunch of disks to store data from many clients. Each of the clients can access any of the disks the server contains. However, unlike with local disk storage,
+you can't just read and write in the normal sense. Instead, you have to send messages across a network as the file system is at a remote location and is not attached to the given
+client system. Network communication, sending messages back and forth between the client and the server, is a costly process. 
+
+Goals:
+- Security:
+As this is a distributed system, the communication between nodes within the system usually take place across unreliable networks. The systems are usually at remote locations from
+each other, and network communication needs to take place. The network (when data is in transit) is usually not very secure, and leaves open the potential for network snoopers to
+perform attacks on the data in transit. There are various forms of attacks that could take place on data being sent over a network with the two main ones being: "man-in-the-middle"
+attacks and "replay" attacks. Man in the middle attacks are when there is some attacker who is listening in on a given network. Now, he can do various things. He can either just
+copy the bytes being sent over the network, and try to crack passwords or encrypted data, or he could tamper with the data. Replay attacks are when an attacker takes a copy of a
+legit message sent over the network, and then at a later time, replays the message being sent (i.e. sends the copy to the other system), which would cause the system to perform
+some action on the message that the server that sent the message isn't expecting at this time. These forms of attacks can be stifled or better secured by the use of encryption.
+Data should never be sent as plaintext over a network, and should be encrypted at all times using some cryptographic hashing algorithm. By encrypting the data, it becomes 
+unreadable to potential attackers. Usually, as two systems are communicating with one another, the encrypted data needs to be decrypted (or readable) by the system that the data
+is being sent to. And thus, there needs to be a way that the receiving system can decrypt the data. This process can be achieved by the use of key cryptography: either symmetric
+key cryptography where both sides have symmetric (the same key) that is used to both encrypt and decrypt data, or with asymmetric (or public key) cryptography in which there is
+a private key and a public key. The whole idea of cryptography is that the keys be kept secret as they are the main means by which the cryptography works. The hashing algorithm
+is usually widely known, and thus, the only form of secrecy and protection is in the key. Thus it should be kept secret. Keys are distributed to other parties using certificates
+which are protected by a trusted Certification Authority to oversee the process. Anyway, I got side-tracked, but the security goal of distributed file systems is to make sure
+that the data being sent/received from a file system is not tampered with and is.
+- Performance:
+As with all computer systems or file systems, performance is a main goal that pretty much needs to be achieved. If a file system is slow, and takes a while to access, then clients
+will be less likely to use it, and it will be pretty useless. Distributed file systems involve the client/server model, which can only be achieved by the use of messages that are
+sent to and from the server and client in order to communicate operations that are requested to be performed on the given data of the file system. However, network communication
+and messages in general is a very costly process. Thus, it would be ideal to limit the amount of communication between the clients and the servers, and to only communicate when
+necessary. Often with performance, it is a goal to improve the latency (single client response-time), but also to improve the throughput or file system bandwidth. However, these
+are usually conflicting goals, with increasing the bandwidth being the more desirable goal as we want the entire file system to have fast performance at the expense of individual
+file requests. To reduce the amount of time that communication between the client and server occurs, distributed file systems can make use of caching: both reads and writes. There
+are various types of caching (i.e. blocks or whole files), but the idea is that by caching information, you can read directly from the in-memory (or local disk) cache, instead of
+having to make requests to the remote server everytime, which would lead to more traffic on the network. With reading, a technique called "read ahead" caching can be achieved, 
+where a process may request to read some piece of data (perhaps a sector in size), and instead you retrieve a larger amount of data (perhaps 4 or 5 sectors), and store it in the
+cache. By retrieving more than what was requested, this allows for subsequent read requests to only have to go to the fast in-memory cache, instead of having to make a request
+to the server each time. In terms of writing, there are different times of write caching. The most popular in terms of performance (for both local file systems and distributed) is
+to make use of write-back caching and immediate reporting. This is the procedure in which a process may issue to the OS to do some store to the file system (write to the file 
+system), but instead of doing it right away, you say that you will do it right away, but you store the write information in the cache. You store a lot of writes together, or you
+"aggregate writes", and then write them all out to the file system in a large transfer size. This is obviously more efficient and reduces the amount of overhead because instead of
+doing a bunch of little writes (which adds to the network traffic), you only do a single write (which occur much less infrequently). Therefore, the client/server interaction is yet
+again reduced. In addition, whole file caching can be utilized to also boost performance. Instead of requesting many reads of a file from the server, you read in the whole file
+into a cache (perhaps on local disk). Thus, future reads (or writes) are faster as they are local or use the in-memory cache, and the reads don't have to be requested to the server
+now as they are local. Thus, this reduces the amount of network traffic. In addition, by writing whole files at once, the amount of write requests to the file system is reduced.
+Lastly, bandwidth performance aspect can be improved by having many servers instead of a single one. A single server if communicating with many clients has limited throughput as it
+has to process all those requests. However, if there are more servers, then the requests can be spread over all the servers, and thus the throughput can be improved. If the files
+are striped, then reads could be more parallel and be done at once if the requested data is striped throughout the disks.
+- Reliability:
+Reliability can be achieved in the form of data mirroring or by using some parity/erasure coding. By default, a single disk to store a file system isn't very reliable because there
+is only a single copy. Thus, if the file system were to crash or lose some bits, they could never be recovered. Thus, there could be multiple copies of the file system that are in
+different locations around the world to increase the reliability. Also, Redundant Array of Inexpensive Disks (RAID) systems can be used to provide more reliability by increasing
+the number of disks that store the information. Now, if all we did was use striping across all the RAID disks, then we can exploit better performance, but it wouldn't provide any
+form of reliability or redundancy. The technique of mirroring can be used, which in RAID systems, or just by having backup file systems on disk, you have multiple copies of the 
+same data. Thus, when writing to some file, you would actually write the same data to multiple copies of the file system. This makes it so that, if one disk were to fail, then
+there would be another copy. Another form of reliability can come in the form of parity/erasure coding. In RAID systems, this makes use of one of the disks to server as the parity
+code, which performs some parity operation on the actual file system, and stores the computation on the parity disk. The parity disk contains the necessary data, thus if a single
+block of a stripe were to be lost or corrupted, it could be recovered by using the other blocks of the stripe and the parity block. This makes it so that an entire disk could fail,
+and then using parity coding, the entire disk (a whole column of a stripe) could be recovered. 
+- Robustness:
+This is especially important in distributed systems. By design (and there is no way to make perfect components), CPUs, file systems, servers, networks fail/crash from time to time,
+it is inevitable. Thus, instead of trying to build a perfect system, you make it more robust by having fail-over procedures, back-up copies, recovery protocols, and other 
+techniques put in place, thus when one component fails or some corruption is detected, the system can continue to be available and still be functional and reliable.
+- Consistency:
+Unlike with a single writer or a single file system (with no clients, perhaps a local one), it is easy to keep the file system consistent. You make writes atomic, or do some data
+journaling, thus when a write is in the middle of taking place, and some failure occurs, it can be recovered and put in some consistent state. However, with distributed systems,
+there are multiple writes and multiple readers, and thus we want the file system or the client's caches to be in some relatively consistent state, thus they know that they are
+operating on up-to-date data of the file system, and not some old copies. This can be achieved by using various techniques such as cache timeouts (in the NFS case), or by using
+write-back protocol, and updating visibility and removing stale caches at the same time.
+- Scalability:
+We want distributed file systems to be scalable. We want a particular server to serve as much as clients as possible. This makes the file system more usable by a larger number of
+people. However, scalability and performance go hand-in-hand. We don't want to just service more clients, but we want to do efficiently and in a high performance manner. Goes hand-in-hand with performance and thus we want to reduce network traffic and the number of client/server interactions. In addition, if there is only a single server then this is a single control point which could serve as a bottleneck, so have multiple servers to increase bandwidth, throughput, and make the system more scalable.  
+- Availability:
+Lastly, we want a file system to always be available to service clients (or as much as possible). Thus, when a server crashes, we want it to be able to boot up as quickly as
+possible, get back into sync with its clients, and begin to accept requests again from the clients. The fastest way to achieve this end is by having stateless servers. Stateless
+servers maintain no information about what clients are doing (i.e. what files they have cached, what file they just accessed, etc.). Instead, the servers are presented with 
+requests that give them everything they need to know about completing the requests. Upon finishing the request, the server moves on to the next one. Thus, if the server crashed,
+there need not be any detailed recovery procedure to reattain consistency. At the worst case, some clients have to reissue requests. NFS makes use of the stateless server, while
+AFS has a server that is near stateless, but stores writeback information. This is fine though, as when either the client or the server crashes, all we have to do is have all
+the clients (or just the one that crashed) send the TestAuth protocol to revalidate or update their cached contents. In addition, we want to have idempotent operations, which means
+that carrying out the operation over and over again has the same result as if it were just carried out once. Thus, this keeps things consistent, and when crashing of the server 
+occurs, or some packets are lost in transit, we can just have the clients reissue the request with no harm being doing. Lastly, and most importantly, upon a server or remote
+file system crashing, we want to make sure that the file system data isn't lost. Thus, we need to have copies of the file system (if the disks failed), or other servers that can
+takeover requests from the clients of the crashed server, until the server is back up and running. Thus, we need a fail-over procedure.
+
+========
+- Distributed locks/leases:
+This is the idea that synchronization doesn’t work the same way as it did on a single system. For a single system, we could guarantee that transactions were atomically all-or-none, we could guarantee mutual exclusion of critical sections using locks, and that we can have a general locking system for all the processes. We have processes or threads running on different systems, and thus they use a different set of OS locks, and we don’t have shared memory, so we can’t enforce the synchronization we could on a single system. In addition, for single systems, if a process was using a lock, and died, then perhaps the OS can just free the lock and the resource. However, if the whole OS dies, then the lock would be lost with the process of the system that just died. Thus, we need different form to ensure synchronization of the distributed system. One solution that works fairly well is the use of leases, which are basically locks with an expiration date. Thus if a system dies, deadlock would be prevented because we just have to wait for the lease to expire. In this setup, there is one system that acts as the master for lease allocation and distribution. Thus this central system gives out leases to processes of different systems that are requesting the access of given resources in the distributed system. The leases are granted to processes, but come with an expiration time. Unlike with locks, which were only given up if the owner gave it up, leases have two conditions: owner finishes and gives up lease or time expires. This makes synchronization possible on a distributed system. A problem that arises is if a process is updating a resource, and is in the middle of it, and the lease expires, and is taken away. In this case, the resource was left in an inconsistent state, and thus our system should ensure all-or-none atomicity, and should roll back to the previous version if left in an inconsistent state. Another idea to consider is how long the lease time should be before expiring? If too short, then a process would likely have to renew the lease many times, and more processes would get preempted while operating on a resource. If too long, then if the owner of the lease died, then the recovery time would be longer, as we have to wait for the lease to expire. Generally, leases work very well, but like all distributed processes acting on remote resources, it is costly. Thus, we want to make it so that leases are given out as infrequently as possible.
+
+Analysis of leases (like locks):
+- Mutual exclusion => yes, they provide it, with added bonus
+- Performance => remote ops are expensive by nature. but if rare lease requests and they have long operation times, thus being able to perform high number of ops, then efficient
+- Progress => yes progress is made, and deadlock is avoided
+- Fairness => depends on the scheduling policy (i.e. queues or priority for acquiring leases, like with locks)
+- Robustness => more robust than in single systems (as they handle deadlock efficiently)
+
+=========
+- Distributed Transactions:
+We want transactions to be atomic, and we can keep track of them via data journaling methods (i.e. write to journal and then do the commit). The transaction is the journal entry, where nothing actually happens yet until the coordinator says to commit. For a single system, this process is easy (same as data journaling file systems). You write the transaction begin, and data to the journal, and then you write the transaction end to the journal, and then you commit the data. For a distributed system, the process is more complicated as there can be more inconsistencies due to the increased number of clients. Thus we need them to come to a general consensus on the matter. The idea involves having one node be the coordinator who is in charge of the commit, and all other nodes in the system are known as the cohorts. There are two approaches: two phase and three phase commits. Two phase involves two phases: 1. the commit request phase, where the coordinator asks all cohorts if they can do the transaction, the cohorts all reply with an ack or a no. If everyone asks, then we proceed to step 2. the commit phase, where the coordinator upon receiving all acks says begin the commit, in which the cohorts (who all are holding the locks and the resources do the commit). And the coordinator waits for all cohorts to return and ack that they are done. However, two phase commits has a general problem in that if everyone acks or some cohorts ack, and the coordinator dies, then we are stuck in an unbounded wait time (form of dead lock). All cohorts are waiting for the coordinator to carry on with the commit, but he just died, so we are all stuck. Thus enter three phase commits in which consists of three phases: 1. commit proposal where the coordinator asks hey guys do you think we can do this transaction (just hypothetically), if they all say yes, then move to phase 2. commit preparation => where the coordinator gives startCommit message to all cohorts who know carry out the commit no matter what (even if the coordinator times out or dies), step 3. commit phase => the cohorts actually do the commit, and ack to the coordinator that they are done. While better, and preventing the blocking of the operation, not all cohorts may have come to a consensus. For example, say that the coordinator told one process that we are doing the commit, and then died, well then all the other cohorts didn’t get the message to commit, just one cohort. Thus, the consensus may never have been reached among the cohorts. 
+
+==========
+- Remote file transfer:
+This is the process of using FTP or SFTP to transfer some data from a remote location or file system to my local machine. It isn’t transparent (i.e. different operations), but it is simple to achieve
+
+==========
+- Remote file access:
+This is what was discussed wit distributed file systems, and is the client/server model procedure of sending messages back and forth
+
+==========
+- Distributed authentication/authorization:
+This is the process of having a different server, an authentication server that authorizes/authenticates the client and the server, and presents the client with a work ticket, which is an unforgeable capability that is trusted. It is trusted because it was generated using a symmetric key that belonged to the authentication server which the server knows to be legit, and the client knows to be legit. The process is two part. First, the client communicates with the authentication server (KERBEROS) which makes a request to KERBEROS
+with the encrypted client key. KERBEROS can decrypt it (because at the beginning KERBEROS got both the client and server’s symmetric keys). Thus the work ticket is encrypted with these client’s key, and then is encrypted with the server’s key. The server knows the work ticket is legit, because it is encrypted with its symmetric key which is only known by KERBEROS, thus the client must have been authenticated. These work tickets are unforgeable as they contain the digital signature of KERBEROS. 
+
+================================================================================================================================================================================
+================================================================================================================================================================================
+Topic 18: Remote Data Performance and Robustness:
+
+- Types of consistency:
+There are many different types of consistency from read-after-write to read-after-close to close-to-open, open-after-close, to ACID, to eventual consistency:
+
+Read-after-write: This is the process of update visibility being almost instantaneous. I write to a file, and then another process that reads it (even before I close the file) can see the changes that were just made. This can be easily ensured with a cache that is shared between many processes, who can see the latest changes before they are flushed to disk to be committed. 
+
+Read-after-close: This model guarantees that if a process is writing to a file, and then closes it. After closing the file, this idea guarantees that a process that does a read after the file is closed will see the latest changes. The close becomes the commit operation. 
+
+Open-after-close: This is the model that whenever a process opens a file, they are given a consistent model of the file looked like when it was opened. Thus, even if another process is doing writes to the same file, I don’t see that process’ changes, and only have the version when I opened it. 
+
+Explicitly versioned files: The idea that each file has a version number associated with a given time. This ensures that no matter how many types you open a file at given times, if you open the same version, your program will extract the same results each time. 
+
+Close-to-open: This is basically the same idea as read-after-close in that it guarantees that if a process is writing to a file and then closes it, that another process that does an open after the close will see your changes. 
+
+Atomicity, Consistency, Isolation, Durability (ACID): The consistency model that is used in database transactions, but can refer to any consistency problem in which you want these four attributes. Basically, it is stating that you want atomicity => all-or-none transactions to take place on the data. You don’t want the data to be in some inconsistent state due to a transaction being preempted or failing in the middle, and thus a half update was made. Instead, you either “roll back” and take the last change, or the transaction completed, and thus you accept the transaction. Consistency ensures that each transaction brings the system to the next valid state, and that we have gotten a consistent model based off of the transactions committed. Isolation ensures that execution of transactions occurred in a mutually exclusive or sequential way, where transactions don’t overlap, but instead one may finish, and then the other transaction can take place. Durability implies that if a transaction occurs, I should be able to see it upon reading it in the future. The transaction is thus persistent and actually took place. 
+
+Eventual: The idea that transactions will eventually converge to a consistent model as long as no new updates are being made to a given data item. If updates are being made, then clients or nodes may be seeing different versions perhaps. Once the resource is done being updated, it will converge to some fixed value.
+
+Basically Available, Soft state, Eventual Consistency (BASE): This consistency model states that there are most of the services that are available most of the time. Soft state
+means that there is no global consistent state of the value of the resource, until updates are halted. And eventual consistency states that as changes begin to slow down or stop being made to the resource, eventually the value of the resource will converge to a given value. 
+
+======
+- Network File System:
+These are the two types of distributed file systems that were discussed. Both forms of distributed file systems make use of the fact that it is a client/server model, in which communication is achieved via network and messaging. The clients consist of a client-side file system which creates the protocol messages to be sent to the server, and the server side consists of the server-side file system, or just the file server. To make performance as high as possible, both sides make use of caching on the client-side, but also note that the server also does caching to speed up operations as well. The main goal of NFS was to be simple and recover from crashes as quickly as possible. The NFS model makes use of a stateless server, thus to make fail-over and crash recovery as speedy as possible. As the file system is distributed and takes requests from tons of clients, it is important that is available as much as possible, and is down as little as possible. Instead of passing information to the server via the pathname of a desired file, NFS uses the concept of a file
+handle, in which there is a special LOOKUP protocol message that passes the empty file handle to the server, and upon return the server will fill the handle with the volume number, the inode number, the version number, etc. After the file handle contains the address of the file, then client can then perform its reads/writes via the read and write protocol messages. The client tracks the relevant state of a file, and stores information in an in-memory cache, while the server doesn’t store any state. To deal with server failures and crashes, the operations that the client performs are idempotent. Thus, if a request was issued, and the server never replied that the request was completed, the client can just retry the request, which will succeed eventually. The main problem with NFS is the crash consistency problem in which there are two main problems: 1. update visibility and 2. stale caches. To solve the update visibility issue (i.e. when can other clients see the changes another client made to a file), employs close-to-open consistency, in which when a file is closed, the client flushes the updates (by blocks) to the server. Thus, when the file is open and being written to other clients will not see the changes, but upon closing the given file, the updates will be sent to the server. To deal with stale caches, the initial NFS had the clients calling the GETATTR protocol from time to time, which basically asks the server, “Do i have the updated version of my cached file”. If they do, then proceed normally, if they don’t then the cache needs to be updated by getting a new copy. However, this is highly inefficient and leads to a server that will become overwhelmed with GETATTR requests and never actually process read/write requests. To combat this issue, the client would have an extra cache known as the “attribute cache” in which the client still validates the actual data cache, but most likely does so to the attribute cache. The attribute cache has a certain timeout, after which a new attribute cache should be fetched and perhaps new data. 
+
+- Andrew File System:
+AFS had the main goal of scalability. It wanted to be able to service as much clients as possible, and avoid the problems faced by NFS: namely the cache consistency quirks and the GETATTR traffic on the network. To increase scalability, the performance and bandwidth would have to be better utilized and improved, which could be achieved via certain improvements. AFS utilized whole-file caching, so that the interactions between the client and the server were at a minimum. Thus, the first file access would be costly, but all subsequent actions on the file would be either on local-disk (where the cache file is stored), or using the in-memory cache which is even faster. Thus, instead of having to go to the network and remote file system each time, just consult the local copy. Originally, AFS had the same problem as NFS, in the form of the GETATTR flooding of the server, just in terms of the equivalent TestAuth protocol message (which polled the server to keep asking if the file that the client had cached had been globally changed). Thus, to fix this issue, AFS implemented the write back, which instead of using polling, would have the server send an interrupt to the client when the given file they had cached changed. Thus, in AFS, the servers hold some state, the write backs, to inform clients when files have been modified. In addition, to improve path traversal, which was an initial flaw of AFS, the second version used a similar idea to the file handle, which was the file identifier (FID), which instead contained a tuple of volume ID, file ID, and a different ID. The goal was to reduce the amount of work the server had to do, and do more work on the client side. Thus, when accessing a file for the first time, the client would cache each name in the pathname, and setup a write back on each directory. Thus, it contains the pathname stored on local disk, thus boosting performance. To solve the cache consistency problems, the write back solved it all in one step. This occurs when a file being updated is closed, and is thus sent to to the server. When this occurs, the server gets the updated file, thus it is visible to all clients, and then the server issues the write back to all clients that have cached copies of the file, which tells all clients that they have a stale cache copy, and to go get a new one. For files on the same machine, updates are visible in place, thus if there are two processes: A and B, and A is updating file 1, B gets notified that file 1 is being updated, even though process A hasn’t closed the file yet. If processes on different machines are writing to a file simultaneously, then last write wins. Lastly, to deal with crash recover, AFS is slightly slower than NFS as it has state. Thus, when a client dies, the server tells the client that it should send a TestAuth to revalidate its cached contents. When a server crashes, it can tell the clients to all use TestAuth to revalidate all their cached items (which is a lot of write traffic), but would be infrequent as crashes don’t happen all of the time. Another approach is to have each client send a “heartbeat” message to the server, and when the server misses some number of consecutive heartbeats to send TestAuth’s to revalidate the caches. 
+
+=========
+- AFS vs NFS:
+Performance and Scalability => AFS wins due to the whole-file caching and write back to reduce the number of client/server interactions. However, NFS still performs well, and in fact is the norm for distributed file systems as AFS fell out of favor. 
+Robustness => NFS is more robust as it is quicker upon crash recovery. But AFS still has a bunch of local copies on the clients
+Reliability => Both file systems are fairly reliable
+Availability => NFS is more available in the sense of crash recovery
+Design centers => NFS can work with systems without local disk storage, but AFS requires local disk for the clients
+
+==========
+- Immutability:
+This is the process of not being moved. In terms of remote data, I would assume that this is talking about data being persistent for a distributed remote file system
+
+==========
+- Reliability:
+File systems are meant to store user data. Thus they should be reliable to do this operation. However, systems, disks, file systems fail and crash. Thus, we should have some copies via mirroring or backups to ensure reliability. Also, we could use parity or erasure encoding to ensure some form of recovery of lost or corrupted data perhaps
+
+==========
+- Availability:
+The idea of being able to service client requests as much as possible. When a server crash occurs, recover quickly, or have some fail-safe in place to lead to processing clients again as quickly as possible.
+
+==========
+- Stateless server:
+Distributed systems, more specifically distributed file systems, deal with a large number of clients. The goal is to service as much clients as possible with a relatively low number of servers. Thus, we want to be available to them as much as possible, and when a crash occurs, we should be up and running again and interfacing with the clients quickly. Or if we are using some fail-start system, another server should be ready, or get ready quickly to take my place. Stateless servers is the process of having servers that store no state about the requests they are servicing for the clients. They just perform the requests, return said data, and move on to the next request. The request given by the client gives all of the information necessary for the request to be completed. By being stateless, upon a server crash, it takes the lowest amount of time to recover and get back in the game, as there is no recovery process that needs to take place (i.e. replay log events). 
+
+==========
+- Idempotent Operations:
+This is the idea that an operation no matter how many times it is executed, doesn’t change the outcome of the operation. The execution of multiple of this operation is equivalent to performing the operation once. This is useful in distributed file systems, in which crashes occur more frequently, and if we are utilizing a stateless server, the client can do a retry. For example, the client requests to read from file a in group 1 from the server. The client can start its timer, and wait for a reply from the server. The timer goes off, the server didn’t reply in the specified time frame, so the client retries the request. It turns out the server crashed, and missed the request, but was up and running to accept the second request, and services it. Let’s say that the client wants to write some data to a file, so it issues the request. This time, the server writes it to the file, but the response that it was written gets lost on the network, so the client retries the request. No harm is done, as the server just redoes the request and writes (the same information) to disk. 
+
+===========
+- ACID consistency:
+Atomic transactions, consistent state (i.e. a transaction that succeeded brings the system to a new state), isolation (i.e. sequential transaction on the same memory), and durability
+
+===========
+- Read-after-write consistency:
+Process A writes to file 1, and hasn’t closed it yet. Process B issues read from file 1, and sees the latest changes to the file
+
+===========
+Close-open consistency:
+Process A writes to file 1, and then closes the file. Process B opens immediately after process A closed the file, and sees the latest changes
+
+===========
+- Man in the middle attacks:
+Networks are by definition not secure. Data should be encrypted when going across the network. However, if data isn’t encrypted, then man in the middle attacks are possible. The idea is that there is some attacker who is listening in (or snooping) on given network. Data gets sent across it, and the attacker can see the bytes being sent. If not encrypted, he can read them and perhaps alter them, or he can redirect the communication through him perhaps, where he is stealing information. If the data is encrypted with keys, and the keys are secret, then he can’t read the data, but he can still alter the encrypted form. Thus, the receiver upon decrypting it, gets some jumbled message, and can infer that the data was tampered with.
+
+===========
+- Graceful Degradation:
+This is the idea that the system has either failed big time or is in the midst of failing. Instead, of letting it all go up in flames (i.e. stop accepting requests from all clients, and call it a night), you could “degrade gracefully” in that you stop accepting requests from the majority of clients, but still service a select few of them. Thus, it is better to service some clients fully, then to not be able to service any.
+
+===========
+- Write latency:
+Latency is the time it takes for a single transaction for a request to be completed. Throughput is the total time of all operations to complete. Write latency refers to the fact that whenever communicating across networks it is very slow. Messages need to be sent, and the systems could be far apart, and it could take awhile. When writing to a network, especially if the receiver is a file system, you want to reduce the number of traffic on the network to boost performance, and increase scalability. In addition, because we are using actual disks in most circumstances, there are additional mechanical overheads in the form of head seeks and positional delays of the arm and head. Thus, if we do a ton of writes, then we will rack up the overhead and performance will be significantly hurt. So, we want to reduce writes. In addition, we want to do large writes, thus for each write we can amortize the mechanical overheads. Therefore, we want to do infrequent and large writes. This idea of boosting performance and throughput will negatively affect the write latency as for individual writes, we might wait a long time to do the write as we are using “write-back caching” and “write aggregating” to achieve the large write.
+
+===========
+- Cache consistency:
+For single systems or a single file system with one client, this issue is not a problem. However, for distributed file systems, we have multiple clients communicating with a single or multiple file systems. To keep performance high, and reduce the overheads and network traffic, obviously we want to utilize some form of caching on the client (but also the server) side. However, in caching, we not only do reads but we do writes. Because we don’t write to disk immediately, we buffer writes in the cache. Thus, it is very possible for clients to have different versions of the file system. However, we want the caches to be consistent and for the file system to be consistent. To achieve this we need a means to keep clients having consistent caches with each other. This can be achieved (most of the time) in different forms. Thus we want to prevent “stale caches”, and we want updates to be visible to clients as quickly as possible. NFS chooses to deal with the issue by using close-to-open consistency, in which the updates aren’t made visible to all clients until the client modifying the file calls close() on it. When the process closes the file, then the write (modifications) are flushed to disk, and the update made visible to the clients. To deal with stale caches (or keeping caches consistent and up-to-date), NFS initially just kept polling the server asking if their version was up-to-date using GETATTR. Later they created a special “attributes cache” that was active for some time period (say 3 seconds), and contained the active version (via a timestamp) of a given file. Instead of polling the server and overwhelming it with GETATTR requests, the clients just poll their attributes cache. For AFS, cache consistency takes place by doing the same flush-after-close consistency. When a process closes a file, the write is flushed to the server, and thus updates made visible. To make sure clients had updated caches, write back was used, in which the server sends an interrupt to the client when a file they have cached has been updated, and tells them they need to update their cache as well.
+
+===========
+- Reliable communication:
+There are two main forms of communication that can be achieved over a network: reliable (in which there is guarantee that if packets are lost), that they will be recovered or the requests retried, and unreliable (if packets are lost, then this is cool). Distributed systems often experience component failures, and networks are no different. Packets are lost all the time, or some attack could have taken place that stole or redirected them, etc. Thus, we can use TCP (reliable) or UDP (unreliable). By reliable, we are referring to the fact that there are checks to make sure that the data is received by the destination system. This is accomplished via the timeout/retry approach combined with acks. The basic idea is that the sender sends some bytes across the network to the receiver. The receiver upon receiving the information will process it however it is requested to do so, but at the same time sends back an ACK to the sender saying hey I got your message. However, as data packets are dropped from time to time, maybe the receiver never got the message, or maybe it did, but the ack got lost. Thus, the receiver sends the message and then begins the timer, if the receiver doesn’t send the ACK within a specified time, then the sender retries the message send. However, we want to avoid having the receiver process duplicate messages. This can be accomplished by using a sequential counter, upon which both sides agree upon some value, and the receiver also maintains its own counter. The sender sends the message, along with the counter value, if the count is the same as the receiver’s count, then it knows that it hasn’t processed this message before. If the receiver receives the message, it increments its count, and sends the ack. Now suppose, the sender never got the ack. In this case, the receiver would have a count that is one larger than the duplicate message that was resent, in which it identifies that it is a duplicate message, doesn’t process the data a second time, but sends the ack to the sender. 
+
+===========
+- Replication and Recovery:
+By using mirroring, or parity/erasure encoding, disk information that was lost or corrupted could be recovered. If there are multiple copies, then you can just get the data from any of the copies. If you just have a single mirror disk, then if only one disk fails, you can use the parity disk to recover the lost block.
+
+===========
+- Striping:
+Striping is the process of taking consecutive blocks and striping them, or spreading them out over many disks instead of having them all in the same disk. This allows for parallelism to take place, because we can read concurrently from all disks of the stripe vs. having to do all the read from the same block. Striping boosts performance, by allowing parallelism to be exploited. Or if there are multiple servers, we can service multiple requests concurrently to different clients. 
+
+===========
+- Direct client-server communication:
+This is the idea that any network involves communication between two ends. If using a distributed file system, there will be a client and a server side. The server is in charge of the file system, while the clients want to do operations on the file system. They directly communicate over the network via messages to specify what they want, etc.
+
+===========
+- Scalable distributed systems:
+AFS was designed to be scalable by exploiting whole-file caching, write backs, and use of the FID. To make the system more scalable, and for each server to interact with more clients, the traffic on the network would need to be reduced. Which is achieved by having the client and server interact less, to give more responsibility to the client (i.e walk the directory pathname), and to reduce the number of requests for cache consistency made by the client by using interrupts instead.
+
+===========
+- Client-side caching:
+Can either cache blocks or the whole-file. Can also make use of read-ahead policies, or write-back or write-through to exploit the most performance gains. 
+
+================================================================================================================================================================================
+Topic 19: MP and Distributed Systems:
+
+- Multiprocessor Scheduling:
+Up to now, and before distributed systems, we had mainly been talking about systems with a single CPU. This discusses the use of a system with multiple cores which can make full use of thread parallelism and be the most efficient performance-wise. However, there is the problem of deciding now which process to run not only for the single CPU, but for the multiple CPUs. There are two general approaches: 1. Single Queue Multi-Processor Scheduler (SQMS) or 2. Multiple Queue Multi-Processor Scheduler (MQMS). SQMS is simpler as there is only a single queue, and thus you queue up all the processes and then choose when to run each on each of the multiple processors. However, SQMS has problems in the form of:
+1. Scalability => SQMS doesn’t deal well with locking (which is a part of using threads), as the locks in this case ensure that the correct operations run in the correct order; however, there is only single queue, so lock contention leads to slow performance. The system spends more time in lock overhead (waiting for locks to be free), then actually running useful code. 
+2. Cache affinity => SQMS basically just sees which CPU is free and places the next process on that CPU. Thus, it doesn’t make use of the cache data that a process built-up on a given CPU. To combat this cache affinity problem, most SQMS schedulers include a cache affinity mechanism to try to make it more likely that a process will continue to run on the same CPU if possible. Thus it will balance the load by perhaps moving one process around all the CPUs, but keeping the other processes on the same CPU to exploit cache affinity. This process is known as “migrating” processes that jump from CPU to CPU. 
+
+The other scheduler approach MQMS, uses multiple queues to schedule jobs which deals better with cache affinity and synchronization. However, it suffers from load imbalance issues, for example when some processes finish on a given CPU, we need some dynamic migrating policy to keep swapping processes to CPUs to keep them running a fair share. This process can be achieved by having queues “snoop” on other queues when they run low on processes, to “steal jobs” to make sure to keep the load balanced. 
+
+===========
+- Cache affinity:
+The idea is simple: when a process is running, it is utilizing the cache (and TLBs) to avoid having to go to memory as much. By doing this, as the process runs, it builds up a good amount of data useful to it in the cache. The next time a process runs, it would be useful if it ran on the same processor, so it could still have access to that cache it was using. If run on a different processor, then this would waste the cache that was built up for that process
+
+===========
+- Cache coherence (consistency):
+Like with distributed file systems, on a multi-processor system, there are multiple processes that all share the same main memory. However, each process has its own cache, and to avoid going to main memory as much (which is slow), the processes exploit their caches. Now to keep with the idea of reducing main memory access, the processes will most likely exploit write-back caching, and thus buffer writes. However, now there is the problem where another process may have a cache that isn’t up to date. This problem can be remedied by having some “bus snooping (or cache snooping)” in which each cache pays attention to the memory updates other caches are making to data, and then “invalidates” the copies in the cache, or “updates” them to the new values. 
+
+===========
+- Virtual machine monitors (VMM):
+This is the process of taking a system and being able to have multiple Ones run as if they were processes. We had another layer of abstraction called the VM monitor which serves as the all-knowing OS, that schedules the actual OSes (say Linux and Mac) as processes, and creates another layer of abstraction known as “machine memory”. When the OS running tries to do a privileged instruction, just like in the normal case (except with another layer of indirection), trap into the VM monitor which performs the privileged op on the OSes behalf (or rather just stops it from performing the privileged op, and then jumps to the OS portion of memory that deals with the trap). This abstraction allows for many OSes, or virtual machines, to be run on the same machine, which is pretty legit.
+
+===========
+- Why build Multi-Processor Systems?:
+In modern times, applications are requiring more and more computing power. One might say, then we can just use a “horizontally scaled system” => that is made up of 1000s of web servers. However, these applications require faster computers, and not just more computers. The more computers in that distributed system would result in the operation having to have many distributed locks (obviously as the data is being acted on by 1000s of different processes). Therefore, this might be slow, and more expensive, and thus we want a single system (or a few) that are faster. 
+
+===========
+- Types of Multi-Processor Systems:
+
+Hyper-threading:
+This process exploits the fact that CPUs are much faster than memory. Thus, most of the time, a CPU spends waiting for memory rather than continuing on with its execution. Thus, this idea involves giving each core of the multi-core system, two sets of general registers, each with the ability to run two independent threads. When one thread is blocked (waiting for memory), the other thread gets to run. Thus, hyper-threading can exploit the wait time to go to memory, by having two threads per core. In addition, the hyper threads run in the same core, and thus share the same address space, and same L1 and L2 caches, and thus make use of good locality.
+
+Symmetric Multi-Processors:
+There are two general approaches: 1. all cores share the same main memory, and 2. they each have their own local memory
+
+1. Share same main memory (discussed in Arpaci chapter 10):
+This is the idea that there are multiple cores that all share the same memory and I/O busses. Each core does have their own L1/L2 caches however. As discussed previously, this version has a cache-coherency problem (as write-back caching is commonly used to avoid going to main memory). By bus snooping, caches can be kept in a consistent state. 
+
+2. Cache Coherent Non-Uniform Memory Architectures (CC NUMA):
+This is the idea that you can’t have fast memory controllers that can provide access concurrently to a large number of cores, and the memory eventually becomes the bottleneck. Thus, give each core its own high-speed local memory, and caches, and then using an interconnect, connect all memory busses to a slower but more scalable network called the “Scalable Coherent Interconnect (SCI)”. This idea allows for each core to do operations to its own local memory which is faster than going to remote memory. The scalable network interconnect must still provide cache coherency (as even though the cores know have their own local memory, they are still a part of the same system), this could be achieved by bus snooping, and then sending updates to each core. 
+
+These memory and cache interconnects can be very expensive power-wise, and usually a multi-core system doesn’t use all the cores, all the time. Thus, we can have some powered off, or slowed down, while the are idle, to save power. 
+
+==========
+- Multi-processor OSes:
+The OS must be able to process all of the threads/processes on each of the cores of the system. To scale the problem, the OS would have to be able to run on multiple cores. In terms of scheduling, we want to keep all cores busy, and thus have as many threads (or processes) on the core running. Like discussed, we want to make use of cache affinity when scheduling which processes to run on the given core, and perhaps when migrating processes between cores. 
+
+Synchronization problems (like with distributed systems) are also different for Multi-processor systems. As the main cause of race conditions on a single core system was due to preemptive scheduling and I/O interrupts. This could be combated by disabling selected interrupts while in a critical section or using locks to allow a thread to have exclusive access to the given resource. However, with multi-core systems, you can’t disable interrupts, as there are multiple cores with different interrupts. The solution to this problem is the use of “fine-grained locking” => which made the locks on critical sections smaller, and allowed for different synchronizations to be achieved with different mechanisms (e..g compare and swap, interrupt disables, spin locks, etc). Moreover, we need to prevent deadlocks, which is a difficult task. 
+
+Lastly, how to deal with I/O operations. Which core should be interrupted when I/O arrives? and which core should initiate the I/O? To exploit cache affinity, it should be scheduled, such that we get as much cache hits as possible. But we may also want to balance the I/O as each core has limited I/O throughput. Lastly, some cores may be closer on the bus to some I/O devices, and thus routing the I/O to them would be quicker than to other cores. 
+
+=========
+- NUMA revisited:
+NUMA is only viable if the majority of all memory references can be satisfied from local memory. Unlike with a single core, where we had a single read only copy of load modules amount all processes to save space, NUMA makes it so that each core should have its own separate copy. The reason for this is because we want to reduce time to remote memory, and exploit the fast local memory for each core. When a program calls fork(), exec(), or sbrk(), the required memory should be allocated on the given NUMA node (core) that the process is running on. Thus, we exploit fast local memory. 
+
+==========
+- Cluster Concepts:
+
+Cluster: => a networked connection of nodes, all of whom agree they are part of a cluster
+There are many types of clusters:
+- Load sharing clusters => divide work among members
+- High availability clusters => back-up nodes take over when primary nodes fail
+- Information sharing clusters => ensures the dissemination of info throughout the network
+
+Membership:
+Two types of membership:
+1. Potential, eligible, or designated members
+2. Active or currently participating members
+Only active members can communicate with one another. Thus membership refers => active members
+
+Degree of Coupling:
+There can be either “loosely coupled” or “tightly coupled” depending on the system needs.
+ 
+Horizontally scaled systems seek maximum independence between the participating nodes. If they don’t share resources, then there is no need for them to coordinate their activities with one another. Thus, horizontally scaled systems use loose coupling. 
+
+Pros:
+- If no shared resources, no danger of conflicting updates from other servers (i.e. if they have caches, need not be worried about cache coherency)
+- If no shared resources, no need to synchronize their use, and thus code is simpler
+- If no communication, then they can operate completely in parallel, which leads to good scalability, and less network traffic
+- If no coordination, then it is highly unlikely that a bug or failure on one node will affect others, which improves reliability and availability of the system
+
+Database servers that service 1000s of requests per second to a single database would need to make use of a distributed system sharing resources and coordinating activities, as there isn’t a computer than can handle that type of load by itself. Thus, database systems use tight coupling of nodes. The ultimate extreme of tight coupling => “single system image” => in which the cluster shares all states and resources so perfectly across all nodes that apps can’t tell that they are not all running on a single computer (perfect transparency). 
+
+Node Redundancy (High availability):
+In clustered systems, work is divided among the active members. To reduce the distributed synchronization, it is common to “partition” work among a certain subset of nodes for certain requests (i.e. a file system, or range of keys). Thus we have two types of node classifications:
+1. “Primaries” => designated owners
+2. “Secondaries” => nodes who are prepared to take over for the primary when he fails
+
+There are two approaches to take with high availability:
+1. “Active/stand-by” => The system is divided into “active” and “stand-by” nodes. The incoming requests are partitioned among the active nodes only, and the stand-by nodes are idle until an active node dies, in which it replaces it
+2. “Active/Active” => The incoming requests are partitioned among all nodes, and one a node fails, the work is redistributed amongst the survivors
+
+Analysis of high availability:
+- Active/active => achieve better resource utilization, but when failure occurs, the performance may suffer due to the remaining nodes having an increased workload
+- Active/stand-by => May not suffer any performance degradation after a node failure
+
+Types of stand-by:
+- In some systems, all operations are “mirrored” to the secondaries, thus when a node fails, the secondary can quickly assume the primary roll => “hot standbys”
+- In other systems, the secondary waits to be notified until the primary fails, after which it opens and reads the failed primary’s last check-point or journal and takes over
+
+Analysis of stand-by types:
+- Hot standby => more network and CPU load, but faster fail-overs
+- Cold standby => fewer resources, less load, but slower fail-overs 
+
+Heart Beat:
+In clusters, we need to know when nodes leave/enter the cluster. However, they don’t always notify when this occurs as they could die, or there are some network failures. To combat this problem, a heart beat is used => in which a message, is regularly exchanged between cluster members. If a member misses a certain number of heart beats, then we can declare the node has failed, and is no longer active. 
+
+Cluster Master and Election:
+It is often convenient to have a master node in a cluster. This is the case for example in 3 phase commits, in which we have a coordinator to oversee the process to get the nodes to come to a mutual agreement. Or instead, with the heart beats, just have the master send heartbeats to the cluster, and if any fail, he will notify the rest. 
+
+Split Brain:
+If a network failure occurs, a cluster may be divided into sub-clusters in which they can’t communicate, and if the cluster shares some critical resource, they might continue operating independently, and produce incompatible decisions. There are two ways to prevent split-brain:
+1. Quorom
+2. Voting Devices
+
+Quorom:
+If there are N potential members in a cluster, then the rule is that a cluster cannot form with fewer than (N/2) + 1 members. Thus, it is impossible for any partition to form a sub cluster. 
+
+Voting Devices:
+Use a shared device of a cluster to do some voting
+
+Fencing:
+The idea that if a node has fallen out of the cluster, that he is no longer trustworthy, and thus should be “fenced-out” of the cluster. 
+
+===========
+- Horizontally scalable systems:
+The capacity and throughput of a system is increased by adding additional nodes. 
+
+Goals: 
+- Scalability and robustness => by eliminating the need for synchronization and communication between parallel servers
+- Flexibility and performance => enable non-disruptive addition/removal of servers at any time
+- Stateless protocols => permit requests to be arbitrarily distributed and redistributed among any server
+
+Horizontally Scalable Hardware Platforms:
+All services exchanged via network messages. A node in the system is simply a computer that implements a specified protocol. 
+“Unit of deployment” => the node => when a new service or more capacity is required, add a new computer system to the server farm.
+“Unit of replacement” => the node => when a service providing element fails, replace it with a new node
+
+- Software defined networking => all servers (virtual or real) are connected to large and versatile switches that can easily be reconfigured to create what ever virtual network topologies and capacities required for the service to be provided. 
+- Software defined storage => intelligent storage containers draw on pools of physical disks to create virtual disks with the required capacity, redundancy, and performance. 
+
+=========
+- Availability zones:
+The idea that there is no single point of failure in the system. A single failure can’t affect multiple systems. To prevent against natural calamities, there needs to become of the data and the servers need to be backed-up far away (in other cities perhaps). Thus, a single disaster wouldn’t affect the backup => in the “availability zone”. The ability to fail over to distant copies and servers is known as “geographic disaster recovery”. 

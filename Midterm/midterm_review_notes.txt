@@ -1,0 +1,1787 @@
+// 5/2/17
+// Lectures 1 - 9 (Weeks 1 - 5)
+// Topics: Intro to OS, Processes, Scheduling, Memory, Paging/Swapping, IPC, Threads, Locks, Semaphores
+
+=============
+Topic 1: Introduction to Operating Systems:
+
+- What is OS?
+OS is a piece of software that acts as the intermediary between the hardware and the user. The OS is key in carrying out the basic functions of the computer system. The OS attempts
+to make the life for the user as easy as possible, and is able to achieve this through various abstractions, hardware support, and certain OS mechanisms. The OS attempts to make
+the life for the user easy by providing a set of APIs for the user to use. The APIs allow the user to tell the OS what the program wants to do, as well as to be able to access
+privileged operations (e.g. I/O requests) that the OS can do on the user's behalf. In addition, the OS attempts to provide protection, security, and isolation for processes. To
+prevent malicious programs from taking over the CPU, the OS put some limitations in place to prevent this from happening (i.e. privileged operations, kernel mode, traps, etc.). The
+OS also wants to prevent processes from accessing or interfering with other process' address spaces. In this way, the OS is able to provide the isolation for the processes. 
+Moreover, the OS serves as a resource manager, as it provides the processes running with various resources (e.g. memory, I/O, CPU). By way of virtualization, the OS is able to 
+create an illusion that there are many CPUs, while there are in actuality, only one or a few CPUs. By using virtualization, and some hardware support (via time sharing), the OS
+is able to run multiple processes at the same time (going back and forth between the processes via context switches). 
+
+- Mechanism/policy separation:
+This principle is very valuable in not only OS, but in programming in general. The idea here is that the mechanism (the how), and the policy (the which) should be separate from
+each other (i.e. should be developed without knowledge of the other), so that if someone wanted to make use of a new mechanism (or policy), then they only have to change the 
+mechanism (or policy) without having to change the other. If these were not separate, then if one were to change the mechanism for example, then they would also have to re-engineer
+a new policy to go along with it. By having them separate, a good deal of time and though can be spared
+
+- Interface vs. implementation:
+An interface can be thought of as a contract. When creating an interface, people have agreed that a certain function, program, or service should behave and look a certain way, and
+ultimately have a specified functionality. As long as the implementers of each service comply with the interface and provide the desired functionality, it doesn't matter what
+the internal implementation looks like, the overall system will just work. Now, the implementation on the other hand, is a specific way in which someone chooses to fulfill the
+interface. An analogy in source language (for example in C), is like the interface is a prototype for a function, that specifies the parameters, name, and the return type. The 
+implementation is the function definition (i.e. the how a programmer chooses to write the given function). Thus there can be many implementations for a given interface, but all
+implementations must abide by the interface specification. When creating a product or program, it is important to abide by the implementation, and not to a particular 
+implementation, as implementations can and do change with time.
+
+- Interface contracts:
+Interface are like contracts in the sense that everyone agrees upon the specification (i.e. its functionality, parameter order, etc.), and it is up to the implementers of the given
+service to comply with the interface specification. It is a contract because when the programmer agrees to implement the service, they are agreeing that they will abide by the 
+rules of the interface. By doing so, it can be assured that no matter how many components make up the overall service, if all parties agree to follow the contract (i.e. the rules
+of the specification), then the service will work as desired. This means that someone can implement the service as they choose, as long as it still has the desired functionality,
+and the correct interface. If someone were to try to change the interface (e.g. switch the order of the parameters for a routine), then this could potentially break the entire 
+system.
+
+- Modularity/Information Hiding:
+This is the idea that if you have a complex system, that you can break it down into smaller and smaller subsystems, which are made up of components. This goes hand-in-hand with
+the layered/hierarchical decomposition, and interface being contracts in that, it is agreed upon that each component has a given functionality, and that they all abide by a given
+interface. If all of the components serve their functionality, then it doesn't matter how they are implemented interally. In this way, external clients need not have to consider
+how the component is implemented, but just know that the component does its job, and it conforms to the interface. In this way, all of the components will do their job, and the
+overall system works as desired. In addition, this means that the internal implementation is encapsulated, and made opaque from the external clients, and by following these
+rules, the overall system is called modular. By encapsulating the internal implementation, and making it so that the external clients need not worry about the internal makeup
+of a given component, this is an example of information hiding (i.e. hiding unnecessary information from the user/client, and only presenting them with the necessary knowledge to
+get their service working).
+
+- Powerful abstractions:
+The OS is full of powerful abstractions devised by OS architects from years ago. More powerful abstractions are always being created. This is the idea that there exists already
+powerful tools, models, mechanisms, and ideas from which we can build upon. Instead of having to start from scratch every time, energy and thought can be spared by using the
+already existing mechanisms (i.e. context switching), or models (i.e. cache coherency) to build upon new concepts and ideas
+
+- Appropriate abstractions:
+This is the idea that you provide a user/client with an interface that he/she asked for, desired, and that best suits their needs. For example, an appropriate abstraction for
+water faucets would be to have two levers/dials that told the user the temperature of the water, and also the flow rate/pressure of the water. An inappropriate abstraction would
+be to have two levers that control hot and cold water, as this makes it difficult for the user to find the desired temperature.
+
+- Indirection/Federation/Deferred Binding:
+This is the idea that there are always new upgrades, applications, services being created. Thus, the OS (at the time of creation) can't have all of these services or be prepared
+for the future upgrades. Thus, there should be a way to add a layer of services (upgrades) on top of the OS. For example, by the use of plug-ins, new tools can be added to a 
+computer system on top of the OS as they are needed. The indirection is the process of having a pointer to a given plug-in, instead of it actually being present in the OS. Then
+by using a federation framework, this is the idea of having a generalized interface specification to service a wide range of possible implementations. When a user chooses a given
+implementation, then in the future, the system will automatically redirect to the chosen implementation. And lastly, it acts upon deferred binding, which is the process of not
+pairing a plug-in to the system at an early time, but rather waits for the user to choose a plug-in, and then when it is actually needed, to go ahead and bind it to the system.
+
+- Cohesion:
+This builds on the topic of modularity and hierarchical decomposition. This is the concept that there are always many functions that will do similar tasks or act on similar 
+resources. The idea of cohesion is to place these similar functions in the same module, or in modules close to other modules doing similar work, so that it reduces the overhead
+of having to have inter-module communication as much, and the processes can be achieved mostly within one's own module. 
+
+- Opaque encapsulation:
+This was already discussed with the modularity and information hiding bullet point.
+
+- OS types/history
+In the 50s, there really was no OS. Instead, the OS was just made up of a bunch of libraries containing commonly used functions. In the 60s, the process of scheduling processes
+came about, but not in the modern manner. Instead, there was a person (operator), who would take requests from people to run their processes, and the operator would schedule 
+the processes in a batch to run in a certain order. After some time, it was realized that the OS was a special thing, which was able to execute some impressive operations, and that
+the OS should be protected. There shouldn't be a process that can monopolize the CPU, or that should be able to access other process information. Thus, the idea of dual modes
+came about, with the processes running in a user mode, which was restricted in the operations that it could use. The OS ran in a supervised mode/kernel mode, which was able to 
+take full advantage of the hardware, and execute privileged operations. Thus, when a user program wanted to do a privileged operations, it would make a system call into the OS, 
+which would initiate a trap instruction, and the OS would execute the privileged operation on the user's behalf, or terminate the process if it tried to do some illegal activity.
+Computers weren't interactive at first, but with the creation of minicomputers, people took a larger role in programming, and interacting with the computer, so the era of
+multiprogramming came about, where the OS was able to run multiple processes at once. This brought about more protection issues, and new upgrades such as interrupts (so that
+the OS could regain the CPU at certain intervals, and schedule other processes to run).
+
+- Layered/hierarchical structure:
+This is the concept of having a complex system being broken down into simpler components that can be understood individually. The component is understood to carry out a given 
+function, and interact with certain other components.
+
+- Dynamic equilibrium:
+This is the idea that applications and programs and platforms are constantly evolving, and new ones being developed. Thus, a given system can't predict or tailor to every upgrade
+application created. Instead, it should act in dynamic equilibrium, where if a force came and moved the system in a given way, it would be able to bounce back, and provide a force
+in the opposite direction. For example, it should be able to react due to an external event taking place.
+
+- Why functionality implemented in the OS?:
+Certain functionality should be implemented in the OS, if it requires the use of privileged operations (i.e. I/O handling), or if the function needs to use/access the OS data
+structures. In addition, if the service is trusted to take care of critical/protected resources, it should be in the OS. Or if the functionality requires trusted operations, or
+deals with privacy. 
+
+- OS goals:
+  (a) Performance (minimizing overhead) => the OS tries to increase performance as much as possible. It wants the CPU to be in use as much as possible, and if a process blocks, to
+      load up another process to run. The OS wants to be able to run programs at the same time, but if the context switches/virtualization incur too much overhead, then it might
+      not be worth it, as performance takes a hit
+  (b) Protection/Privacy/Security => The OS wants to protect the system from malicious programs, but also to protect processes from other processes. They shouldn't be allowed to 
+      access their address spaces, registers, variables, etc.
+  (c) Fairness => the OS tries to schedule all of the processes such that they get a fair shot at the CPU. The OS tries to avoid starving a program
+  (d) Reliability => the OS is trusted to take care of/act on critical, and private memory and data. It is trusted not to mistreat or lose the specified data, despite regular
+      failures of certain components.
+  (e) Portability => there are constantly new platforms, systems being invented, and it is a goal for the OS to be able to be portable to these systems
+  (f) Interface stability => with new applications being created, and the user's desire to constantly be given new upgrades, updates, there are constantly new versions of a system
+      being created. Thus, there should be some stability in the interface of the routines or functionality of the program. Some to choose to have some form of upwards, or 
+      backwards compatibility to service old clients. But others choose to forget about the old clients, and just role with the new versions
+
+================================================================================================================================================================================
+Topic 2: Resources, Services, and Interfaces:
+- Basic OS services:
+The OS provides a bunch of services for user programs to use: scheduling, context switching, memory management, IPC, threading, I/O communication, and file systems to name a few.
+The OS schedules which processes to run, and can do so by taking advantage of virtualization and context switching. In addition, the OS can provide the service of memory 
+management => a program requests for memory, or is finished with said memory, and the OS can allocate more memory for the process, or can free up some memory for the process
+to use elsewhere. In addition, the OS provides inter-process communication, which allows processes to communicate with other processes (which can be done via sockets, pipes, named
+pipes, etc.). Also, the OS provides the option of threading, which allows multiple instances of scheduling to run at the same time. Moreover, the OS provides services to programs
+in the form of I/O communication, which allows the programs to (through a system call) read or write from some I/O device, disk etc. Lastly, the OS provides the service of 
+persistent storage to programs, which allows the programs, or memory to be stored on files or in file systems. The OS is able to provide these services to the programs via
+subroutines, system calls, and also messages. First, through subroutines, the program is able to access standard procedures to do certain operations. The basic process of this, 
+is to call a certain subroutine, and the OS will push parameters onto the stack to pass to the subroutine, push the return address, and save register values onto the stack, and
+then jump to the subroutine. The advantages of using normal subroutines are that it is very fast (ns), and that it can all be done in user-mode (i.e. don't need to trap into the OS
+to perform the operations, thus no overhead here). The disadvantages of using subroutines are that it limits the ability to change library functionality, and that it all takes
+place in a single address space. Second, through system calls, a program can make use of more privileged operations (e.g. I/O requests), which take place in kernel mode by the OS.
+System calls are similar to subroutine calls, except for the extra trap instruction, which has its own overhead (i.e. save PC/PS pair, find the corresponding system call handler
+in an OS kernel table, save context, trap to 1st level handler, then do some stuff, then go to second level handler, before returning). The advantages of using system calls are
+that you are able to use privileged operations/resources, and that you are able to share information/resources between processes. The disadvantages are that it is fairly slow, 
+about 100-1000x slower than when using subroutines. Lastly, you can make use of services via messsages, in which you use syscalls to communicate with a server. The advantages
+are that it is highly scalable, and that the server can be anywhere. The disadvantages are that is very slow about 1000-100,000x slower than using subroutines.
+
+- Higher level OS services:
+Besides the basic OS services such as; scheduling, context switching, memory management, IPC, threading, memory management, and persistent storage, the OS is also able to provide
+some higher level services. These services include concurrency, the use of parallel processes, user interfaces, and security. Through the use of locks and condition variables,
+the OS is able to allow for concurrency to be achieved. In addition, the OS is able to provide some user interfaces such as GUI making the system more easily used and navigated. 
+Lastly, the OS is able to provide a program with protection via user authentication sessions, and encryption to allow for secured sessions.
+
+- Layers of services:
+The OS provides several layers to the system that include libraries, the kernel, middle-ware, and system services. The library is just made up of convenient, and commonly used
+functions that are used all of the time. Libraries are just pieces of code that was created by someone else, and thus allows for the reuse of code, saving energy and effort. In
+addition, libraries provide a program to use many different functions to carry out operations of the program, and does so at different binding times. If using static binding, the
+library will be loaded in at link time to the object module. Shared libraries, and dynamic linking can also be used to defer the binding, to save memory, space, and also to 
+speed up performance and load-time. Another layer provided is the kernel. This layer is the piece of the system where the OS operates, and is able to access all aspects of the 
+hardware, and the system. The kernel consists primarily of functions that require privilege to execute. Things should be placed in the kernel/OS if they require privileged 
+operations, use/access/interact with OS data structures, deal with trusted memory/data, allocate physical resources, or need to ensure privacy/isolation/containment, or ensure
+the integrity of critical resources. Another layer of the OS is the middle-ware. The middle-ware is not part of the OS, but is key to the application or service platform (e.g.
+Apache, Hadoop). As it is not part of the OS, it doesn't deal with kernel code (which is expensive, and harder to build and test). Lastly, the OS supports a system services layer,
+which can contain privileged processes (e.g. direct I/O operations). 
+
+- Upwards compatibility:
+There is always the constant creation of new applications, tools, systems, and platforms. Because of this there is the constant need to add new features to an implementation (while
+still not changing the interface specification). There are many ways to go about this, but if someone wants to maintain the upwards compatibility => creating a new version in which
+the old versions still work on the platform, there are several ways to go about doing it. One such way, is to use interface polymorphism. In this way, a function could have several
+different implementations, which would be able to service the new clients and have new features, but at the same time, still maintaining the older interface for the older clients.
+This allows for backwards compatibility => allowing older applications to still work on a newer system/platform. Another way to do so is by version interfacing => in which case,
+an applliaction calls out which versions of an interface it requires to be compatible with a given system. In this way, both sides agree to a version, so that it will still be
+compatible. Can also have interface stability guidelines for new releases, in which one comes out with minor version changes (e.g. to service bugs, make some fixes), which makes
+it still compatible. But then comes out with major version changes, which says that if you want these new features, then you must upgrade the software, otherwise, you may
+be incompatible. It is important to maintain interface stability, so as to keep clients, and not lose monetary value. In addition, it is important to keep updating the interface
+to service new improvements and features. 
+
+- Objects and operations:
+This is the idea that you can look at the services that the OS provides in an object-oriented view. For example, the platform I am using implements objects (i.e. bytes, strings,
+or files, processes). In addition, an object is defined by its properties, methods, and semantics. It would be better to have better objects, in which the complexity is
+encapsulated from the user, and the process or system is easier to use. In this way, the abstractions are simplified by the OS and the hardware, and the user doesn't have to worry
+about it at all. 
+
+- Abstracted resources:
+The OS provides certain resources to the user, but it is easy in the way that they arrive. The resources are abstracted from the user to make the system easier to use. For example,
+when the program requests more memory (a physical resource), it appears as if the memory is just given to the program. However, the process of requesting memory is a system
+call that must be executed within the kernel, which must check to see if there is memory available to give to the user, which involves a policy of how to find the chunk of memory
+to give, and then gives back the memory to the system.
+
+- Serially reusable resources (temporal multiplexing):
+This is the idea of virtualizing physical resources in which multiple clients are able to use the resource. However, the clients use it one at a time. This process requires access
+control to ensure exclusivity (i.e. while Process A has it, no one else can have it). In addition, it requires a graceful transition between users (i.e. B waits for A to finish, 
+A has finised, and now B receives the resource). An example is a printer or bathroom stalls. 
+
+- Partitionable resources (spatial multiplexing):
+This is the idea of virtualizing physical resources in which multiple clients can use the resource, but the resource isn't all for one client. Instead, the resource is divided
+into disjoing pieces. There is also the need for access control to ensure containment and privacy. We want to make sure that a user can't access a region outside of his/her 
+partition, and also we want privacy, so that no one can access a given user's partition. Examples of this include RAM, and hotel rooms.
+
+- Shareable resources (under-the-cover multiplexing):
+This is the idea of virtualizing physical resources in which clients don't have to "wait" for access to resource (temporal multiplexing), and don't "own" a partition of the 
+resource (spatial multiplexing). Instead, it may involve limitless resources. An example is a copy of the OS, which is shared by processes.
+
+- API vs. ABI:
+API: source level interface
+APIs are a basis for software portability, but applications must be recompiled for each platform (but API must be defined in a platform-independent way)
+Includes:
++ => routines/methods, and their signatures (parameters, return types)
++ => list of associated macros, data types, and data structures
++ => discussion of the semantics of each operation, how it is used
++ => discussion of all of the options, what each does, and how it should be used
++ => discussion of return values and possible errors
+====
+ABI: binary interface
+ABIs are the binding of an API to an ISA
+ABIs are more portable than an API => if an application is written to an API, and compiled and linkage edited by ABI tools, then the module will run, without recompiling on any
+platform supporting the ABI
+Includes:
++ => binary representation of key data types
++ => instructions to call to and return from subroutine
++ => stack-frame structure and responsibilities of caller and callee
++ => how parameters are passed and return values are exchanged
++ => register conventions (which are used for what, which must be saved/restored)
++ => conventions for syscalls, and signal deliveries
++ => formats of load modules, shared objects, and DLLs
+
+- Subroutines vs. system calls:
+System calls are in fact procedure calls, despite the hidden trap instruction for the system calls. A system call is a call to a subroutine built into the system, while a function
+call is just a call to a subroutine within the program. Subroutines can be executed in user-mode, but system calls must be executed in a privileged mode that takes place in the
+kernel. System calls are entry points into the OS kernel. The system call initiates a trap, which halts the execution of the user program, saves its PC/PS pair, uses the system
+call number to find the corresponding trap handler in the trap table in the kernel, and then calls the 1st level handler, which does some context saving of the user process, then
+jumps to the 2nd level handler, which takes care of the system call on the user's behalf, then goes back to the 1st level handler, which restores the user state, PC/PS pair, 
+registers, and then transfers control back to the user program, while simultaneously reducing the mode back to user mode from privileged mode. A system call is much more expensive
+and slower than a subroutine, as there is the trap, which must do a context switch to the address space in the kernel where it services the system call, and then must restore the
+user mode context upon returning. 
+
+- Versioned interfaces:
+This is a form of compatibility, which looks to maintain the compatibility despite their being constant evolutions in the applications, platforms, and new features being constantly
+added. Instead of using interface polymorhism or creating incompatible changes, versioned interfaces is the concept where both sides agree to a version that they will use for a
+given application to still be compatible with a system/platform. 
+
+===============================================================================================================================================================================
+Topic 3: Process, Execution, and State:
+
+- Programs and Processes:
+A process is just an executing instance of a program. A program is just a bunch of instructions on disk waiting to spring into action
+
+- Process address space:
+The OS, with help from the hardware, can create the illusion that there are multiple CPUs, instead of just a single physical, or a few CPUs. By using virtualization, multiple
+processes can be run at once, and each process is given its own virtual address space. To the process, it thinks that it is in physical memory, and has complete control over the
+physical memory. In actuality, it is sharing the physical memory with other processes, and may not even be in physical memory at the time (i.e. could be swapped out on disk).
+The address space of a process consists of the code segments, data segments, and stack segments, and some library segments (if mapped into the process)
+
+The code segment is read only and is sharable (i.e. many processes can use the same code segment). The code must be read in from the load module, and then mapped into the virtual
+address space. 
+
+The data segment is read/write, and is process private. This means that each process has its own data segment, and it can't be shared between processes. The program can grow or
+shrink the data segment during run-time with the sbrk syscall
+
+The stack segment is also read/write and is process private. The size of the stack depends on the programs activities (i.e. more function calls adds more stack frames, when
+calls return, then stack frames can be reused). The OS manages the process' stack segment, which is created at the same time as the data segment. 
+
+The library segments can be binded to a program, and thus are a part of the process' address space. Libraries can be shared between processes, or can be private to a certain 
+process. 
+
+- Process state (elements of):
+A process can be in 1 of 5 states really (for Linux): initial, blocked, ready, running, and final (zombie). The initial state is when the process is being created. The blocked
+state is when a process for example does an I/O request, and it is blocked (giving another process the CPU), and won't be ready until the I/O request completes. Ready is when
+a process is ready to run, but for some reason, the OS has yet to schedule it. Running is when a process is currently executing instructions on the CPU. Finally, the final state,
+or zombie state, is when a process has exited, but the OS has yet to come in and clean the process up yet. When a process is moved from ready to running, it is scheduled, and when
+a process is moved from running to ready, it is descheduled.
+
+In addition, there are resident and non-resident process states. The resident process state is the information that is needed to schedule the process (i.e. run-state, priority, 
+data needed to signal or wake process). Consists of the identification information. On the other hand, there is non-resident process state, which is information needed only when
+the process is running. It can be swapped out to disk. It consists of the execution state (kernel stack, saved register values, PC, PS), and pointers to resources used when
+running (i.e. current working directory, open file descriptors). 
+
+Elements of a process include:
++ => memory (address space) => instructions, and data the running program uses to read and write resides in memory 
++ => registers => many instructions explicitly read or update registers and thus, registers are important to the execution of the process. Special registers include the 
+     Program Counter (PC) [or Instruction Pointer (IP)], which tells which instruction is currently being executed, PS word, and also a stack pointer and frame pointer.
++ => I/O information => programs often access persistent storage devices, so it might include a list of the files the process currently has open
++ => System resources and paramters => open files, current working directory, user ID, parent PID, scheduling priority
+
+- OS state for keeping track of processes:
+The OS has key data structures to keep track of relevant pieces of information. One such piece, is the process list, which is used to keep track of which processes are ready, and
+also some info about which process is running. It also keeps track of the processes that are currently blocked. For each process of the process list, there is a process control 
+block (PCB), which contains information about each process. In addition, there is a register context data structure, which holds for a stopped process, the contents of its 
+registers, thus will restore the context when the process is running again.
+
+- Creating a new process:
++ => Allocate/initialize the resident and non-resident process description
++ => Duplicate parent resource references (e.g. fds)
++ => Create a virtual address space: (allocate memory for code, data, and stack, load program code and data, initialize stack segment, set up initial registers (PC, PS, SP))
++ => Return from supervisor mode into new process
+
+- Stacks/Linkage conventions:
+Most modern programming languages support procedure-local variables. These local variables are automatically alloacted whenever the procedure (or block) is entered. The local
+variables are only visible within the given procedure (or block) (can't be referenced outside of their block). Each distinct invocation of the procedure (or block) (via recursion
+or parallelism) has it's own set of the local variables. When the procedure, or block is exited, the local variables are implicitly deallocated. The local variables, parameters,
+and intermediate computational results are all stored on the stack, which grows downwards. Memory that is intended to be long-lived, should be allocated on the heap.
+
+The details of subroutine linkage conventions are ISA-specific. However, the general rule applies to all subroutine linkage conventions. 
++ => parameter passing => when calling a subroutine that requires parameters, they are passed via registers to the called routine
++ => subroutine call => saving the return address of the calling routine onto the stack, and then transfering control to the entry point of the called routine
++ => register saving => saving the contents of registers from the calling routine, and then having them restored upon return from the called routine
++ => allocating space for local variables => this is done in the called routine, and the space is allocated on the stack 
++ => return value => the return value is placed where the calling routine expects it to be
++ => popping local storage => when the called routine completes, the local storage is automatically popped off of the stack in the called routine
++ => register restoring => restoring the registers to their original values upon returnining from the called routine
++ => subroutine return => when the called routine completes, pop the return address of the stack, and resume control at the return address of the calling routine
+
+X86 Register Conventions:
++ => %rsp => is the stack pointer
++ => %rbp => is the frame pointer (i.e. points to the start of the current stack frame)
++ => the stack grows downwards (i.e. push ops have lower addresses, while pop ops have higher addresses)
++ => %rax => register that holds the return value 
++ => parameters are pushed onto the stack immediately before the return address
++ => call instruction => pushes the return address onto the stack, and transfers control to the called routine
++ => ret instruction => pops the return address of the stack, and resumes execution for calling routine
+
+- User-mode/Supervisor-mode:
+Code that runs in user mode is restricted in what it can do (i.e. can't do I/O requests). If a process (in user mode) does something illegal, then it will most likely be killed
+by the OS. Kernel mode (supervisor mode)  is what the OS/kernel runs in. In kernel mode, privileged operations can be executed, and code that runs can do what it likes. To enable
+a user program to do a privileged operation, the user program makes use of a system call, which is an entry point into the OS, in which the OS executes the syscall on the user's
+behalf, and then returns control back to the user. When making a system call, a special instruction known as a trap is made, which is made into the kernel, and a return-from-trap
+instruction is executed upon returning control to the user program. The kernel is trusted to handle critical data and information, and do privileged operations. The kernel (at 
+boot time) initialized a trap (and interrupt) table, which maps the system call numbers to the specified handler for the given system call. Then, when a trap occurs, the control
+is passed (eventually) to the trap handler to deal with the syscall before returning to the user program. The user mode is restricted to the process' address space.
+
+- Traps (exceptions):
+Traps are used for executing system calls, but they are also used for exceptions. Exceptions are when a user program executes an illegal instruction, or tries to access some
+memory that it shouldn't be accessing. The semantics for dealing with exceptions should be similar to that of a system call. For example, say a user accesses some uninitialized
+memory, then this a segfault. In this case, the execution of the user program is halted, and the PC/PS word pair is saved. Next, using the system call generated in the user
+program, the OS goes into the trap table (initialized at boot time) to find the corresponding trap signal. It finds that it is a segfault, and then passes control to the 1st
+level handler. Control is passed to the appropriate handler, and as it is an exception (segfault), the program is terminated. 
+
+- Traps (syscalls):
+Traps are used for syscalls, in addition to exceptions. Unlike exceptions, the user program hasn't made any mistakes, and just wants to access some privileged operation. In this 
+way, a similar process happens. The execution of the program is halted, and the PC/PS word pair is saved. Next, using the syscall number, control is passed into the entry point 
+into the kernel, which locates the trap table (initialized at boot time). It uses the syscall number as an index into the table to find the corresponding syscall, and the
+appropriate handler. Control is then passed to the 1st level handler, which saves some registers for the user program, notes the return address, and then passes control to the 
+appropriate 2nd level handler. This handler deals with the syscall, and then completes, returning to the 1st level handler. This handler restores the context of the process, and
+the PC/PS word pair for the user program is loaded up into memory to resume execution.
+
+- Interrupts (async events):
+Interrupts were put in place as a means for the OS to maintain control over the CPU. Syscalls, or when an exception (error) is made, transfers control back to the OS, to decide
+which process to run, and if they will switch to new process. However, if a process never makes a syscall, or a mistake, then the OS may never get back control. To combat this, 
+some hardware support was put in place (interrupt timer) to allow the OS to regain the CPU at certain intervals of the timer interrupt. At boot time, in addition to the trap
+table, there is also an interrupt table, which contains various interrupt signals to process, and their associated interrupt handlers. Also, at boot time, the timer is started by 
+the OS, which is a privileged op. Thus, when a timer interrupt goes off, execution of the program is halted, and the PC/PS word pair is saved, and control is transferred inside
+the kernel, where the appropriate interrupt handler is located in the interrupt table. The 1st level handler does some context saving, and then passes control to the 2nd level
+handler, which then deals with the interrupt (perhaps resetting some pin), and then returns control to the 1st level handler, which restores the state of the process, and execution
+resumes. 
+
+- Differences between procedure call and interrupt/trap:
++ => procedure call is requested by the running software, and the calling software expects that, upon return, something will have been performed
++ => linkage conventions for a procedure call are controlled by the software, interrut/trap linkage conventions are controlled by the hardware
++ => the running program wasn't expecting a trap/interrupt, and after the event is handled, the computer state should be restored to as if the trap/interrupt didn't occur
+
+- Typical interrupt/trap procedure:
+  - There is a number associated with every possible external interrupt, exception, or system call
+  - There is a interrupt/trap table, initialized by the OS at boot time, that associates a PC/PS word with each possible external interrupt, exception, system call
+  - When an event happens that triggers an interrupt/trap:
+    1. CPU halts execution of the currently executing program
+    2. CPU uses the associated interrupt/trap number to index into the appropriate interrupt/trap vector table
+    3. CPU loads new PC/PS word from the interrupt/trap table
+    4. CPU pushes the PC/PS word of the interrupted program onto the CPU stack
+    5. Execution continues at the address o the new PC
+    6. The 1st level handler:
+       (a) Saves general registers on the stack
+       (b) Gathers info from the hardware on the cause of the interrupt/trap
+       (c) Chooses the appropriate 2nd level handler
+       (d) Makes a normal procedure call to the 2nd level handler (which deals with the interrupt/trap)
+    7. 2nd level handler deals with the event, and returns to the 1st level handler, which:
+       (a) Restores saved registers
+       (b) Executes privileged return from interrupt/trap instruction
+       (c) CPU reloads the PC/PS word of halted program
+       (d) Execution resumes at point of interruption
+
+Note that an interrupt/trap is much more expensive than a procedure call. Because when an interrupt/trap occurs, a new PC/PS word must be loaded into the CPU, which will move
+to a completely new address space (and processor mode), and most likely involve a complete loss of the CPU caches. The same thing happens upon return from the interrupt/trap.
+Thus, an interrupt/trap (syscall/exception) is around 100-1000x more expensive than a procedure call
+
+- fork vs. exec (and also wait)
+fork() => Linux way to create a new process. The child is a clone of the parent. However, the child process can adjust the resources it inherited (as it has its own copies). It
+can change the I/O file descriptors, change the working directory, and choose which program to run perhaps via exec(). After a fork() is executed, there are now two processes, with
+different PIDs, but otherwise they are identical. The parent gets a return value of the child ID, while the child gets a return value of 0. 
+
+exec() => loads a new program, and you can pass in parameters. The address space is completely recreated, and open files remain open. There are many different types of exec =>
+execvp(), execve(), etc. If an exec() succeeds, it should never return. 
+
+wait() => awaits the termination of a child process. wait() is used to collect the exit status of a child process. Can use waitpid() to wait for a specific child process. The wait
+is similar to the pthread_join() function in that it halts its execution, and waits for the exit status of the child process before continuing.
+
+The difference between fork() and exec() is that fork creates a new process, which is an exact copy of the parent. exec on the other hand, doesn't create a new process, but instead
+transforms the process, its address space into an entirely different program. 
+
+- Forking and Data Segments:
+Forked child shares the parent's code segment (single read-only segment, referenced by both). The stack and data segments are private (as they are per process). As, the programs
+continue execution, they are likely to diverge with subsequent updates, but they start off as copies. 
+
+- Terminate a process:
++ => Reclaim any resources it may be holding (e.g. memory, locks, access to hardware devices)
++ => Inform other processes that need to know (e.g. those waiting for IPC, parent)
++ => Remove the process descriptor from the process table
+
+- Copy-on-write:
+Priavte objects begin life in exactly the same way as a shared object, with only one copy of the private object stored in physical memory, and then the processes map the private
+object into different areas of their virtual address spaces, but share the same physical copy. The page table entries are flagged as read-only, and the area struct is private
+copy-on-write. So long as neither process attempts to write to the memory, they continue to share a single copy of the object in physical memory. As soon as a process attempts
+to write to some page in the private area, the write triggers a protection fault. Next, a new copy of the page in physical memory is created, and the process' page table entry
+is updated to point to the new object in physical memory, and write permissions are given for the page. 
+
+Advantages: Deferring the copying of pages in private objects until the last moment, makes the most efficient use of scarce physical memory
+
+With fork, the child inherits the code, data, and stack segments from the parent. However, the code is a shared read-only segment, while the data and stack segments are copies from
+the parent (as these are per process). An optimization is to have the same data and stack segments perhaps for the child, and make them read-only. The moment that one of the
+processes attempts to write to the data or stack segment, then create a new copy for that process, make it read only. Now, instead of sharing the segment, they each have their
+own copies. This defers the copying of the segment, in an attempt to save as much physical memory as possible. 
+
+- Limited direct execution:
+In order to virtualize the CPU, the OS needs to share the physical CPU among many processes seemingly running at the same time. It does this via time sharing, in which the CPU
+runs one process for a given time, then switches to another, and so forth. Virtualization is achieved this way, and multiple processes are running at the "same time". 
+
+Challenges with virtualization:
+1. Performance => if too many processes are running (perhaps the context switching) provides too much overhead, and hurts performance
+2. Control => how can we run multiple processes, while retaining control over the CPU (don't want a program to monopolize the CPU, and the OS may never get it back)
+
+Limited direct execution => run the program directly on the CPU, but put some limitations in place that prevent the programs from taking over the CPU, or not allowing other
+processes to run (or even the OS to get the CPU back). These limitations include having dual modes, privileged operations, system calls, and timer interrupts.
++ => Dual modes => We don't want a process to be able to execute any operation, or to access pieces of memory that don't belong to it or are restricted. To ensure the protection
+of the CPU, the OS, and other processes, processes run in user mode. User mode is restricted in the operations it can do (i.e. no I/O requests), and processes in user mode
+are restricted to their process space. The OS runs in supervisor/kernel mode, in which it can execute any operation it likes, and can do any privileged operation. Functionality in
+the OS should be restricted to if it needs to access/interact with OS data structures, deal with privileged operations, deal with memory management, take care of privacy, 
+protection, or ensure the safety of critical resources. Now, if a user program wants to execute a privileged operation, it makes a system call, which traps into the OS, in which
+the OS does the privileged operation on the user's behalf. Now, this provides protection for the system. In addition, if the user program does something illegal, a trap will be
+raised, in which the offending process will most likely be terminated. When doing a system call (or trap), the OS must make sure to save the process' context, so that it can
+return safely to back to execution. So, on a per-process kernel stack, the process context (i.e. PC, registers, flags) are stored, and are popped off when the OS returns 
+
+Two phases in the LDE protocol:
+1. OS (at boot time) initializes the interrupt/trap table, starts the interrupt timer via privileged instruction
+2. Kernel sets up a few things (allocates node on the process list, allocates memory), then executes return-from-trap instruction to start execution of the process, then 
+switches to user mode
+
+To deal with switching between processes, and regaining/maintaining control of the OS, a timer interrupt was enabled, which goes off at certain intervals, in which the process
+executing is halted, and then control is handed back to the OS (in which it deals with the interrupt, and decides if it wants to switch to a new process)
+
+- Context save/restore:
+The decision to continue running the currently-running process, or switch to a different one is a policy decided by the scheduler. If the decision to switch is made, then the OS
+executes a low-level code (context switch). Context switch => OS saves some register values for the currently-executing process on the per-process kernel stack, and restore 
+a few for the soon-to-be-executing process (from the kernel stack). 
+
+Context saved/restored includes:
++ => General purpose registers
++ => PC
++ => kernel stack pointer of currently-running process (or of soon-to-be-executing process)
+  - It switches between the per-process kernel stack from the currently-executing process to the soon-to-be-executing process
+
+Types of register saves/restores:
+1. Timer interrupt => the "user registers" of the running process are implicitly saved by the "hardware" using the kernel stack
+2. Context switch => the "kernel registers" are explicitly saved by the "software"
+
+- Signals (exceptions):
+Processes can control the handling of signals (i.e. ignore, designate a handler, default action). When an asynchronous exception occurs (i.e. ^C), the system invokes the specified
+exception handler, which can handle it as necessary. May choose to abort rather than return.
+
+- Types of libraries:
+Library => collection of (usually related) object modules. One library might contain standard system calls, while another might contain commonly used math functions
+
+Static linking => directly (and permanently) incorporating library into the load module
+Disadvantages:
+1. Many libraries are used by almost every program. So, there are 1000s of identical copies of the same code for all the programs => increase in down-load time, disk space, start-
+   up time, and memory
+2. Popular libraries change over time with enhancements, bug fixes. With static linking, each program has a frozen version of the library, so can't get the new version of the 
+   library for the program automatically
+
+Shared libraries => map a portion of multiple process' address space to a single library (read-only) that is shared by all the programs. Saves physical memory
+Implementation:
+1. Reserve an address for the shared library
+2. Linkage edit each shared library into read-only code segment
+3. Assign a number (0-n) to each routine, and put a redirection table at the beginning of that shared segment, containing the addresses of each routine in the shared library
+4. Create a stub library, that defines symbols for every entry point in the shared library, but implements each as a branch through the appropriate entry in the redirection table
+5. Linkage edit the client program with the stub library
+6. When the OS loads the program into memory, the OS maps the code segments (shared library) into the new program's address space
+Advantages:
++ => Single copy of a shared library can be shared by all programs
++ => Version of the shared segment is chosen at run-time
+Limitations:
++ => Shared segment is read-only. Routines to be used in this way can't be static data
++ => Shared segment will not be linkage edited against the client program, can't make static alls to the client program
++ => called routines must be known at compile time
+
+DLLs:
+DLL => Libraries that aren't loaded until they are actually needed, and can be un-loaded when they are done with
+Limitations of static and shared:
++ => may be very large libraries seldom used, but still taking up space in the address space
+Implementation:
+1. Application chooses a library to be loaded
+2. Application asks the OS to load the library
+3. OS returns addresses of standard entry points (e.g. init and shut-down)
+4. Application calls the entry point, and the application and DLL bind to each other
+5. App requests services from the DLL by making calls through the dynamically established vector of service entry points
+6. App done with DLL, calls shut-down method, asks OS to un-load the DLL
+Implicit DLL Implementation:
+1. Apps linkage edited against a set of stubs, which create Program Linkage Table (PLT) entries in the client load module
+2. The PLT entries are initialized to point to calls to a run-time loader
+3. First time entry point is called => the stub calls the run-time laoder to open and load the DLL
+4. After the library has been loaded, the PLT entry is changed to point to the appropriate routine in the DLL (all calls through PLT go directly to now-loaded routine)
+
+Shared Libraries vs. DLLs:
++ => Both allow code sharing and run-time binding
++ => Shared libraries => don't require special linkage editor, shared objects are obtained at program load time
++ => DLLs => require run-time loader, modules aren't loaded until needed, can be un-loaded when done using
+
+- Software generation tool chain:
+compiler -> [.s] ->  assembler -> [.o] -> linkage editor -> [executable] -> loader -> [process]
+
+================================================================================================================================================================================
+Topic 4: Scheduling Algorithms, Mechanisms, and Performance:
+
+- Execution state model:
+The process states (without swapping in and out from disk) are blocked, ready, and runnning (among the initial and final states). With the use of swapping, two new process states
+come into play: swapped out (when a process is blocked, it might be swapped out from physical memory to disk) and swap wait (when a process that is on disk is now ready to 
+be swapped back into physical memory).
+
+Un-dispatching a running process:
+A process is currently executing, but due to a timer interrupt or a yield (by the process), we enter the OS. Now, we save the state of the process (i.e. PC, PS, registers), and 
+also the supervisor mode registers onto the supervisor mode stack. We then yield the CPU, and call the scheduler to select the next process
+
+Re-dispatching a process:
+After the state of the current process has been saved, the scheduler is called to decide what process to run next. It gets the pointer to the next process' process descriptor, and
+locates and restores its saved state (i.e. restore code, data, stack segments, restore saved registers, PC, and PS). Now, we can execute the new process
+
+Blocking and Unblocking Processes:
++ => Blocking => a process needs a resource unavailable, so we block it until the resource is available. Change that process' state to blocked, and unblock it when the resource is
+     available, in which we will change the process state to ready.
+Blocked processes are not eligible to be dispatched. It is merely a note to the scheduler stating that the process is not ready
+
+Primary and Secondary Storage:
++ => Primary => main memory (executable). Primary storage is expensive and limited. Only processes in primary storage can run. 
++ => Secondary => Disk (non-executable). Blocked processes can be moved to secondary storage (i.e. swapped out). In this case, you swap out the code, data, stack, and non-resident
+     context of the blocked process to make room for a "ready" process. When the process becomes unblocked, it can be moved to (swap wait), and then can be moved to ready, by
+     swapping it back to primary memory
+
+Why Swap:
+Swapping is done to make the best use of limited memory. A process can only execute if it is in memory, so if it isn't ready it doesn't need to be in memory (thus making space)
+for ready processes. In addition, swapping is done to improve CPU utilization. When no ready processes => CPU is idle, thus we want as many ready processes in primary memory as
+possible. However, swapping takes time and consumes I/O (so we want to reduce as much as possible).
+
+Swapping Out:
+Process' state is in main memory (code and data segments, and non-resident process descriptor). Process becomes blocked (perhaps), so copy them out to the secondary storage. Now, 
+update the resident process descriptor (i.e. process not in memory, and make pointer to its location on disk). Now, there is freed memory available for other processes. 
+
+Swapping Back In:
+Re-allocate memory to contain the process (code and data segments, and non-resident process descriptor). Read the data back from secondary storage, and change the process state
+back to ready. Restore the saved context, which was on the per-process kernel stack entry. Note: this involves a lot of time, and I/O.
+
+- Process State Model:
+A process is in either ready, running, or blocked state. It can also be in initial or final state. However, when using a secondary storage (which we will), then swapping of 
+processes in and out of memory occurs, and thus there are also the swapped out, and swap wait states. When a process becomes blocked, we can choose to swap it out to secondary
+storage (i.e. disk) to free up memory for other ready processes. In doing this, you move the code, data, and non-resident process descriptor to disk, and make note of the changes
+in the resident process descriptor, and make a pointer to the location on disk where the process is. To swap back in, you do a reverse of the swap-out process.
+
+- Mechanism/Policy Separation:
+The idea is used in scheduling as well. There are various mechanisms and policies that were thought of when performing scheduling. It would be a waste to have to devise a new
+mechanism (or policy) if we were to create a new policy (or mechanism). Thus, we want to separate the mechanism from the policy, so that changing one won't affect the behavior, or
+correctness of the other. 
+
+- Scheduling Metrics:
++ => Mean time to completion (s) => for a particular job mix
++ => Throughput (turnaround time) (ops/s) => the difference between the time it took to complete the job and the time that the job arrived
++ => Mean response time (ms) => the difference from when a job is first run and the time that the job arrived
++ => Overall "goodness" => customer specific weighting function
++ => Fairness => want to reduce the amount of jobs starving, or having unbounded wait times
+
+- Scheduling Goals:
++ => Time sharing: fast response time to interactive programs, each user gets equal share of the CPU, execution favors higher priority processes
++ => Batch: maximize total system throughput, delays of individual processes are unimportant
++ => Real-time: critical ops must happen on time, non-critical ops may not happen at all
+
+- Non-preemptive scheduling (FIFO, SJF, Priority):
+The scheduled process runs until it yields CPU. Works well for simpler systems. Depends on each process to voluntarily yield. A process that takes forever can starve others, while
+a buggy process can lock up the entire system
+
+- Preemptive scheduling (STCF, RR, MLFQ):
+Process can be forced to yield at any time. For example, if a higher priority process becomes ready, or a running process' priority is lowered.
+Pros => Enables "fairness"
+Cons => Introduces amortization problem with context switches, creates potential resource sharing problems
+
+- Starvation:
+Unbounded waiting times => not merely a CPU scheduling issue. It can happen when there is a case-by-case discrimination, where it is possible to lose every time. Starvation can
+be prevented by having strict FIFO queueing requests (even if a process takes a long time to complete, there is still the guarantee that the process behind in the queue will get
+a chance to run). 
+
+- Convoy:
+The convoy effect => a number of relatively-short potential consumers of a resource get queued behind a heavyweight resource consumer (FIFO)
+
+- Cost of context switch:
+The OS wants to implement a scheduler method such that the context switch doesn't dominate the overall performance. For example, if the time slice is too short, then suddenly,
+the context switch might take up a lot of the overall time. For example, if time slice is 10 ms, and context-switch is 1 ms, then 10% of overall time is spent doing context-switch.
+Note: that context switching costs isn't solely due to saving/restoring a few registers:
+      + => Entering OS (taking interrupt, saving registers, calling scheduler)
+      + => Cycles to choose which process to run (scheduler must now decide new process to run)
+      + => Moving OS context to new process (switch process descriptor, kernel stack)
+      + => Switch process address space (swap out old process, map-in new process)
+      + => Losing hard-earned L1 and L2 cache contents (due to flushing)
+
+- Time sharing:
+This is simply the idea of running multiple processes at the same time. By virtualizing the CPU (and memory), the OS is able to run multiple processes at the same time (with some
+help from hardware). This is possible by using time sharig => running a process for a given amount of time, then context switching to another, and so on to give off the illusion
+to the processes that multiple processes are running at the same time.
+
+- Time slice (scheduling quantum):
+Time slice => Instead of running jobs to completion, run the jobs for a given time period, and then switch to the next job (Round-Robin => time-slicing method)
+
+- Optimal Time Slice:
+An optimal time slice makes it so that the the effects of context switches doesn't have too serious of an impact on the overall performance. Wwant to make the time slice a good
+length, so that the context switch is negligible in the overall run time of the CPU. Note: that the shorter the time slice is, the better the response-time metric for the 
+Round-Robin method.
+
+- Types of Scheduling Policies:
+[Non-preemptive Scheduling: run job to completion (unless it blocks or yields)]
+
+First-in First-out (FIFO) (Non-preemptive: it will run the jobs to completion):
+Idea => run first process in queue until it blocks or yields
+Pros => simple and easy to implement, all processes will eventually be served (i.e. no starvation)
+Cons => easy prey to convoy effect, highly variable response times (delays)
+
+Shortest Job First (SJF) (Non-preemptive):
+Idea => All processes declare their expected run time. And now run the shortest job first (until it blocks or yields)
+Pros => likely to yield fastest response time
+Cons => Some processes may starve (unbounded wait times) (i.e. infinite shorter jobs, and one long job, that will never run), there is no ability to correctly estimate the
+     	required run time
+
+Priority (Non-preemptive):
+Idea => All processes given a priority => run the highest priority until it blocks or yields
+Pros => Users control assignments of priorities, can optimize per-customer "goodness"
+Cons => Still subject to starvation, per-process may not be good control
+
+[ Preemptive: Process can be forced to yield at any time]
+
+Shortest To Completion First (STCF) or Preemptive Shortest Job First (PSJF) (Preemptive => when a new job enters the system, determine which has least time left, schedule it):
+Idea => When a new job enters the system, determine which of the remaining jobs (and new job) has the least time left, schedule it
+Pros => Attempt to improve the turn-around time
+Cons => Not necessarily good with response time (i.e. the long process could potentially never be served if short processes keep coming in)
+
+Round Robin (Preemptive):
+Idea => Processes are run in a (circular) queue order. And each process is given a time-slice. If the process uses all of its time slice, then the timer interrupt will expire the
+process' run time. Note: the time slice should be a multiple of the timer interrupt interval.
+Pros => Greatly reduces time from ready to running, and seems to be fair (will run a piece of all processes), good for response time
+Cons => Some processes will need many time-slices, extra interrupts/context switches add overhead
+
+- Tradeoffs:
+No matter which scheduling method you pick, there will be inherent tradeoffs between response time and throughput. Preemptive has better response time, but it can also increase
+the mean throughput. In addition, how big to make the time-slice? Non-preemptive has lower overhead (less context switching, traps), but how should the processes be ordered (i.e.
+fairness)? The performance depends on the specific job mix (i.e. if given more interactive jobs, then want to use a preemptive scheduler)
+
+- Dynamic Equilibrium:
+A good scheduler must be able to adapt. It should respond automatically to changing loads. For example, if only a few short processes, then maybe just use non-preemption. However, 
+if only given interactive programs, then preemptive is the way to go. Thus, a good scheduler should be able to be reconfigured to the change of the load.
+
+- Multi-Level Feedback Queue (Pre-emptive):
+Goal => try to minimize the throughput and response time
+Idea => Multiple levels of queues (some have short time-slices and others have long time-slices). The short time-slice queues run frequently, while the long time-slice queues
+run infrequently. Assign priorities to processes based off what they do (for example, if a process yields the CPU a lot, it might be like an interactive program, so give it
+a high priority, while a process that is very CPU intensive might be given given a low priority).
+Rules => 1. If Priority of A > Priority of B, then A runs
+         2. If Priority of A = Priority of B, then A and B run in RR
+	 3. When a job enters the system, it is placed at the highest priority (topmost queue)
+	 4. Once a job uses up its time slice (no matter how many times it yields), its priority is reduced (moved down one queue)
+	 5. After some specified time, give all jobs a "boost", and move them to the topmost queue (this tries to combat starvation, and gives all process' a chance at the CPU)
+Pros => Fast response time, and also perhaps turnaround time (for top-queue processes)
+Cons => How do we know where a process belongs
+
+- Metrics of Real-Time Schedulers:
++ => Timeliness => how closely does it meet its timing requirements
++ => Predictability => how much deviation is there in delivered timeliness
+
+- Real-time Schedulers:
+Some things must happen at particular times (hard deadlines). For example, if you can't process the next sound sample in time, there will be a gap in the music. Real time 
+scheduling has deadlines (either hard or soft). Hard deadlines must be met, while soft deadlines could potentially be missed.
+
+Characteristics:
++ => May know how long each task will run => easy to schedule
++ => Starvation (of low priority tasks) may be acceptable
++ => Work-load may be fixed
+
+Hard Real-Time Schedulers:
+The system absolutely must meet its deadlines. The system will fail if a deadline is missed (e.g. controlling nuclear power plant). Scheduling order may be hard-coded to 
+avoid missing deadlines. To ensure hard deadlines, it requires deep understanding of all code (i.e. know exactly how long it will take in every case). Avoid complex ops with
+non-determinstic times (e.g. interrupts). Predictability is more important than speed (i.e. non-preemptive may be the way to go here, fixed execution order)
+
+Soft Real-Time Schedulers:
+It is highly desirable to meet the deadlines, but missing some could be okay ("best effort approach"). All tasks need not always run to completion, as we can miss some deadlines.
+Algorithms:
++ => Earliest Deadline First => Each job has a deadline, keep the job queue sorted by deadlines, always run the first job in the queue
+  Pros => Minimizes the total lateness
+
+- Graceful Degradation:
+System overloads will happen (e.g. random fluctuations in traffic). What to do when the system overloads? => offer slower services to all clients, or offer on-time services to 
+fewer clients. Things went wrong, but we can still make it right for some people (not all). Or we can make things less right for all (but not completely right).
+
+===========================================================================================================================================================================
+Topic 5: Memory Management, Allocation, and Relocation:
+
+- Physical Address Space & Virtual Address Space:
+Address space => an abstraction of physical memory, in which a process is given a virtual address space (in which it thinks it is using physical memory)
+The address space contains all of the memory state of the running program:
++ => Code => the instructions => which is read-only and static
++ => Stack => to keep track of where it is in the function call chain, and to allocate local variables, pass parameters, and returns values to/from routines
++ => Data => use of the heap => for dynamically-allocating memory via malloc()
+
+The stack and the heap are placed such that they grow in opposite directions towards one another, as they are dynamic (and you don't know how big they will be at run-time). The 
+heap grows upwards (larger addresses), while the stack grows downwards
+
+The address space is just an abstaction => the program isn't really at physical address 0 in memory, but is rather at some arbitrary physical address, and just in its own virtual
+address is it at the given address (i.e. starts at 0) => virtualizing memory. When, for example, a process tries to perform a load at address 0 (where it thinks it is), the OS, 
+with hardware support doesn't actually go to address 0, but to address 320KB (where the process is actually loaded in memory).
+
+The physical memory is divided between the OS kernel, the process private data, and shared code segments.
+
+- Text/code segments:
+It is the program code that is allocated when the program is loaded. It is initialized with the contents of the load module (usually the program's instructions). All text
+segments are read-only and of fixed size. They can be shared by multiple processes, as they are read-only.
+
+When implementing the code segments:
++ => Program loader => asks for memory (size and virtual location), and copies the code from the load module into memory
++ => Run-time loader => requests DLL be mapped, and edits the PLT pointers from program to the DLL
++ => Memory manager => allocates memory, maps into the process
+
+- Data/Stack segments:
+They are process-private and read/write. They are initialized data, and are allocated when the program is loaded. The data segment can expand or contract, and does so via
+requests via the sbrk() system call. The process stack is allocated and grown automatically on demand.
+
+When implementing the data/stack segments:
++ => Program loader => asks for memory, copies data from load module into memory, all uninitialized data is zeroed
++ => Memory manager => invoked for allocations and stack extensions, and allocates/deallocates memory
+
+- Shared library segments:
+If using static linking, then the library is mapped into the virtual address space solely for the process. If using a shared library, then a read-only, shared library is given
+a virtual address, and all processes using the shared library will map a part of their virtual address to the shared library's address. If using DLL, then at run-time, when the
+user decides he/she wants to use some functions of a DLL, the DLL is binded to the client's program at certain entry points (i.e. init, and shut-down), and linked through a PLT.
+
+- Memory Management Goals:
+1. Transparency => process sees only its own virtual address space, the process is unaware that memory is being shared (thinks it has sole control over physical memory)
+2. Efficiency => OS attempts to make virtualization as efficient as possible (i.e. speed (not making programs too slow), and space (not using too much memory for structures needed
+   for virtualization)
+3. Protection & Isolation => private data will not be corrupted, private data can't even be seen by other processes
+
+- Address space layout: 
+The address space of a virtual address space is divided up between the given process' stack, data, text segment, and also any shared libraries. The address space of the physical
+memory consists of the OS stack, process' private virtual address space (i.e. stack and data), shared libraries, and any shared code segments
+
+- Fixed Partition Memory Allocation:
+Pre-allocate partitions for n processes, and reserve space for largest possible process. This is very easy to implement as all memory allocations are of the same size.
+Cons => it is likely to use memory inefficiently => internal fragmentation, and swapping results in convoys on partitions.
+
+- Variable Partition Allocation:
+Start with one large "heap" of memory, and when a process requests more memory:
++ => Find a large enough chunk of memory
++ => Carve off a piece of the requested size
++ => Put the remainder back on the free list
+When a process frees memory, then put it back on the free list. Using variable partition eliminates internal fragmentation losses, but does lead to external fragmentation.
+
+- Fragmentations and Types (i.e. internal and external):
+Fragmentation => wasted or unusuable free space:
++ => Internal fragmentation => not needed by its owner (but was given anyway by perhaps fixed-size partition allocation)
++ => External fragmentation => uselessly small pieces (created by using variable-size partition allocation, but now there are pieces too small on the free list to be used)
+Choose your poison:
++ => Static allocation => constant internal waste
++ => Dynamic allocation => progressive external loss
+
+- Fixed vs. Variable Partition:
++ => Fixed partition allocation => allocation and free lists are trivial, but internal fragmentation is inevitable (average 50% wasted if all blocks are of the same size)
++ => Variable partition allocation => allocation is complex and expensive (e.g. long searches of complex free lists), eliminates interal fragmentation, but external fragmentation
+     is inevitable (but can be managed by coalescing and relocation)
+
+- Internal fragmentation:
+Wasted space due to fixed size blocks. It is caused by a mis-match between the chosen sizes of the fixed size blocks, and the actual sizes requested by the program. The average
+waste is about 50% of each block. The overall waste can be reduced by having multiple sizes (i.e. different sizes for the fixed partitions => e.g. 5 MB and 10 MB blocks)
+
+- External/Global Fragmentation:
+Each allocation creates left-over fragments, and eventually, there will be chunks that are too small to satisfy any requests. But, perhaps by recombining the small pieces (i.e.
+coalescing), the pieces can be useful again. 
+There are 3 approaches:
+1. Try to avoid creating tiny fragments
+2. Try to recombine adjacent fragments (coalescing)
+3. Re-pack the allocated space more densely (relocation of memory, such that the "too small" chunks are placed near each other, so that they can be coalesced)
+
+- Stack vs. Heap Allocation:
++ => Stack allocation => compiler manages the space (e.g. locals). The data is valid only within the routine (or block), and data is popped off the stack, when the frame is done.
+     The OS automatically shrinks/extends the stack segment as the program continues (via push/pop ops)
++ => Heap allocation => Explicitly allocated by the allocation (via new). Data is valid, but doesn't go away until free() (or Garbage Collector) removes it. The heap space is 
+     managed by the user-mode library, and the data segment size is adjusted by system calls (e.g. sbrk())
+
+- sbrk() vs. malloc():
++ => sbrk() => manages the size of the data segment. Each address space has a private data segment, and the process can request that it be grown/shrunk. The sbrk() system call
+     specifies the desired ending (break) address. It is an expensive operation
++ => malloc() => dynamic heap allocation. sbrk() is called to extend/shrink the heap, while malloc() is called to carve off small pieces of memory, and free() is called to return
+     them to the heap
+
+- Memory Allocation Life Cycle:
+1. Loader allocates space for, and copies initialized data from load module
+2. Loader allocates space for, and zeros uninitialized data from load module
+3. After it starts, the program uses sbrk() to extend the data segment, and put the newly created chunk on the free list
+4. Free space (heap) is eventually consumed, and the program uses sbrk() to further extend the data segment
+
+- Splitting and Coalescing:
+Free list => contains a set of elements that describe the free space remaining in the heap
+Splitting => When a process requests some memory, the allocator will find a free chunk of memory that can satisfy the request and split it into two. The first chunk is returned
+	     to the caller, and the second chunk remains on the free list
+Coalescing => When a chunk of memory is freed, look at the address of the chunk being returned and the nearby chunks in the free space. If there is another free chunk to the left
+	      or right, then merge the chunks together, thus creating a single larger free chunk. Coalescing is used to combat (or slowdown) the process of external fragmentation.
+The job of coalescing can be made easier by having address-sorted doubly linked lists, and also buddy allocation. Buddy allocation => makes it so that every chunk has a buddy,
+which is the same size as it. Once, a chunk is freed, it checks to see if its buddy is free, if so, then it coalesces with it, and then checks the next larger size. It continues,
+until a buddy isn't free, and then stops the coalescing. 
+
+- Coalescing vs. Fragmentation:
+Opposing processes that operate in parallel. Coalescing works better with more free space. Chunks that are held for a very long time can't be caolesced. High variability increases
+the fragmentation rate. But, fragmentation gets worse with time, coalescing tries to slow the process.
+
+- Free list:
+Free list => contains a set of elements that describe the free space remaining in the heap. The free list could just consist of the free chunks of memory, but also might consist
+of used chunks as well. In this way, the free list will know when coalescing can be done perhaps. 
+
+Keeping track:
+To keep track of all of the blocks on the free list, requires having a linked list of descriptors (headers) => one for each chunk. Each descriptor lists the size of the chunk, 
+whether it is free/used, and has a pointer to the next chunk in the list. 
+
+- Free list design:
+Goal is to avoid creating small fragments (want to reduce external fragmentation). This can be combated by using coalescing, and compaction perhaps.
+Choices:
++ => Best fit => smallest size greater/equal to requested size is the chunk chosen
+     - Pros => might find a perfect fit
+     - Cons => must search entire list every time, quickly creates very small fragments
++ => Worst fit => largest size greater/equal to requested size is the chunk chosen
+     - Pros => tends to create very large fragments (at first)
+     - Cons => still must search entire list every time
++ => First fit => take first chunk that is big enough
+     - Pros => short searches, creates random sized fragments
+     - Cons => first chunks quickly fragment, searches will progressively become longer, ultimately it fragments as badly as best fit 
++ => Next fit: instead of beginning the first-fit search at the beginning of the list, keep an extra pointer to the location where was last left off
+     - Pros => spread the searches for free space uniformly throughout the list (avoids fragmentation at the beginning of the list), entire list search is avoided
+     - Guess pointers => if right, saves a lot of time, if wrong, the algorithm still works
+
+- Segregated Lists/Special Buffer Pools:
+It turns out that memory allocation size requests aren't so random. In fact, there are popular sizes. Thus, the idea is to have a separate list just to manage objects of a given
+popular size, and all other requests are forwarded to a more general memory allocator. Could have several separate lists if there are multiple popular sizes. 
++ => Pros => improved efficiency => much simpler than variable partition allocation, and reduces (or eliminates) external fragmentation, and requests can be serviced much quicker
+     	     if they are of the right size, as no search of a free list needs to be done.
++ => Complications => how much memory should one dedicate to the pool of memory for special requests, as opposed to the general pool?
+     - Too little => buffer pool is a bottleneck
+     - Too much => we will have a lot of idle space
+
+- Balancing Space for Buffer Pools:
+There are many different special purpose pools. The demands for each changes continuously, and thus memory needs to migrate between them. This is an example of dynamic
+equilibrium => must be able to exchange memory back and forth between the buffer pools as needed. Can use "claw-back call-back" => OS requests services to free all available
+memory perhaps
+
+- Buffer Pools - Slab Allocation:
+Requests aren't merely for common sizes, but rather they are often for the same data structures (popular sizes). When the kernel boots up, it allocates a number of object
+caches for kernel objects likely to be requested frequently. The object caches are segregated free lists of a given size and serve memory allocation and free requests quickly.
+When a given cache is running low on free space, it requests "slabs" of memory from a more general memory allocator, and vice versa. In addition, the slab allocator keeps
+free objects on the list in a "pre-initialized state" as initialization and destruction of data structures is costly. Thus, it only reinitializees the fields that must be changed.
+
+- Common Dynamic Memory Errors:
+1. Forgetting to allocate memory => if you access non-existent memory => segmentation fault (illegal memory access)
+2. Not allocating enough memory => buffer overflow (e.g. writing past the end of an array)
+3. Forgetting to intialize allocated memory => access uninitialized memory => undefined
+4. Forgetting to free memory => memory leak => could lead to running out of memory
+5. Freeing memory before being done with it => dangling pointer => freeing memory, then accessing the memory just freed (doesn't work bruh)
+6. Freeing memory repeatedly => double free => undefined 
+7. Calling free() incorrectly => free expects a parameter, and if you give it something wrong (e.g. local variable) => undefined
+
+- Diagnostic Free List:
+Having all chunks in the list (whether allocated or free) => enables us to find state of all memory chunks. Each chunk can have a header (that contains the size, if it is free
+or allocated, and a pointer to the next, and possibly, previous chunk), audit info (e.g. record of who last allocated each chunk), and guard zones (some protection against
+buffer overflows). 
+
+- Garbage Collection:
+Garbage collection is an alternative to freeing => applications allocate objects, and never free them. The user-mode memory manager monitors the space. When it gets low, then
+it can initiate the garbage collection. 
+Idea:
++ => Search data space finding every object pointer
++ => Note the address/size of all accessible objects
++ => Add all inaccessible memory to the free list
+Cons:
++ => It is expensive => must scan all possible object references, compute an active reference count for each, and may incur some overhead for the running process
+Progressive Background Garbage Collection:
+The idea is that it runs continuously, in parallel to the application. This would incur overhead and have some races for the data access
+
+Finding all accessible data:
+Some object-oriented languages enable Garbage collection. All object references are ttagged, and include size information. 
+
+Problems with Garbage Collection:
++ => How to identify pointers in the heap? => a number or string could look like an address
++ => How to know if the pointers are still live? => a value doesn't mean the code is still using it
++ => What kind of strcuture does it point to? => need to know how much memory to free
++ => Only possible if all data/pointers are tagged
+
+GC vs. Reference Counting:
+What if there are multiple pointers to objects? (when can we delete it). Idea => associate a reference count to each object, and increment the object count when a new object
+references it, and decrement it, when an object unreferences it. Then, delete the object when the reference count hits zero. It isn't the same as garbage collection as it 
+requires explicit close/release operations.
+
+===========================================================================================================================================================================
+Topic 6: Virtual Memory and Paging:
+
+- What to do when coalescing fails:
++ => Garbage collection is just another way to free memory (doesn't affect fragmentation)
++ => If memory is held onto for a very long time, and is only free for a short time => coalescing is not likely to occur
++ => Need a way to rearrange active memory (repack all processes in one end of memory), and create one big chunk of free space at the other end (compaction)
+
+Need for Relocation:
++ => Memory compaction moves a process from its original location to a new location all together. By compacting free space together, this allows for coalescing to occur, and 
+     combat external fragmentation
+Problem => a program is full of addresses, and if the address space changes, then all instructions will be wrong. However, with the use of the base and bounds register, the address
+spaces of processes are able to move anywhere in memory. When executing an instruction, the virtual address is translated to the actual location in physical memory.
+
+- Relocation Problem:
+With virtualization, the OS is able to create the illusion that multiple processes are running at once, and that each process has the idea that it own sole control of the physical
+memory. In reality, there are multiple processes sharing the physical memory, and the OS provides a virtual address space to each process. The process thinks that it is at address
+0 for example, when in reality, it is mapped to an arbitrary location in physical memory. Thus, when a process references a piece of memory, the OS must be able to translate
+the virtual address of the process into an actual physical address, and then translate it back to the process. This builds on top of the concept of Limited Direct Execution, of
+executing directly on the CPU, with some limitations, and now with address translation. 
+
+Address translation => changing the virtual address to a physical address where the desired info is actually located
+
+Problem => how can we reloacte the process in memory, so that it is transparent to the process, but maintains the illusion of virtualization.
++ => The problem can be answered by using "base and bounds" or "dynamic relocation" => which is the process of having processes think that they are at address 0, when in actuality,
+the OS has placed them in an arbitrary place in physical memory. The base and bounds registers will allow us to place the address space of a process anywhere in physical memory
+with a little relocation. The relocation is achieved by taking a virtual address, and adding the base register to it to get the physical address (address translation). Address 
+spaces can be moved (even after the process has started running), and because of this => it is also known as dynamic relocation
+
+Base and Bounds Register:
++ => Base register => this is used to translate the virtual address into a physical address
++ => Bounds register => ensures that addresses are within the confines of the address space. If an instruction references an out-of-bounds address, then the bounds register will
+     raise an exception, and most likely the process will be terminated. 
+
+Memory Management Unit (MMU) => the part of the processor that helps with address translation. The hardware provides the base and bounds registers, and thus each CPU has an 
+additional pair of registers to keep track off. The hardware provides special instructions to modify the base and bounds registers (which allows the OS to change them when
+different processes run). 
+
+Cons => this base and bounds register implementation still has "internal fragmentation" as the process has an address space allocated to just it, but it might not use all of the
+memory given to it, which would go wasted (answered by segmentation)
+
+- Memory compaction:
+Is a form of defragmentation (which can combat external fragmentation). The idea is that to make coalescing more successful, it would be nice to rearrange the small free chunks
+of memory to a place where they can be contiguous, and thus allow for coalescing to occur. This involves moving a process to another location in physical memory, and moving
+all of the free space to another part of the physical memory.
+
+- Segment addressing:
+If an address space is rather large, then it can't all fit in physical memory per say. In addition, there would be a lot of internal fragmentation, as pieces of the address space
+may never be used. To solve the problem => segmentation => idea: have multiple base and bounds pairs per logical "segment" (i.e. code, data, stack) of the address space. The use
+of segmentation allows the OS to place the segments of a process into different parts of physical memory, and avoid filling physical memory with unused virtual address space. This
+allows for "sparse address space" to be accomodated in physical memory. 
+
+Addressing Offsets:
+Now, when we want to reference a certain virtual address, we don't just take the initial segment address, but must take an offset of the current piece we are interested in from
+its segment:
+
++ => Explicit approach => chop up the address space into segments based on the top few bist of the virtual address. For example, we have three segments, so two bits can be used
+     of the virtual address to reference the corresponding segment. Then, using the base and bounds registers of the segment, we can find the offset into the segment. 
++ => Implicit approach => hardware determines the segment by noticing how the address was formed (i.e. PC, or use of the stack or base pointer)
+
+Support for Sharing:
+A new upgrade to segmentation came in the form of sharing memory segments between different processes to save space in physical memory. The segment usually shared between processes
+is the code/text segment, and it is often made read-only. To support the sharing of segments, in addition to the base and bounds register, there also needs to be more protection (
+i.e. protection bits) that state whether a given segment is read, write, or executable. 
+
++ => Extra work => check whether a virtual address is in bounds, but now also must check what the access is to the segment (i.e. can't write to a read-only segment)
+
+Fine-grained vs. Coarse-grained segmentation:
+
++ => Course-grained => chop up the address space into relatively large coarse chunks (i.e. code, data, stack segments)
++ => Fine-grained => early systems allowed for a large number of smaller segments (requires the use of a segment table to keep track of all of the segments, and their locations)
+
+OS Support:
+
+Segmentation is the process of instead providing a fixed size for a process in physical memory, you divide up its address space into segments (i.e. code, data, and stack). By 
+doing this, space in physical memory can be saved, and the unused space between the stack and heap doesn't need to be allocated in physical memory, which allows for more 
+process' address spaces to be in physical memory. The idea is that relocation takes place, in which each process has a virtual address space (in which they think that they are at
+address 0 in physical memory), when in actuality, they are relocated to an arbitrary location in physical memory. This is achieved by using a base and bounds register for each
+process, and also by using protection bits perhaps (to allow for sharing of segments that are read-only perhaps). 
+
++ => Issues: 
+  + => What to do on a context switch? => just save the state of the old process, save its registers, its base/bounds registers, and load in the new process
+  + => When a new address space is created, where to put it in physical memory (its segments)? => External fragmentation takes place when chunks are of variable size. Thus,
+       compaction of physical memory is an option, to make free space for new processes to fit in physical memory. Compaction is the act of moving processes that are in physical
+       memory to a completely different location, thus making a larger free space. The process just changes the virtual address of the process' address space, and alters its
+       base and bounds registers. However, compaction is very expensive, and takes a lot of time. The solution to this process, to prevent external fragmentation, and a good deal
+       of internal fragmentation is by using pages (of fixed sizes). 
+
+- Paging (no swapping):
+
++ => Two approaches the OS makes when solving any space-management problem:
+  1. Chop things up into "variable-sized" pieces => segmentation => leads to fragmentation eventually
+  2. Chop things up into "fixed-sized" pieces => paging => divide into pages (that can be swapped in and out of memory when needed)
+Physical memory is seen as an array of fixed-sized slots known as page frames (that contain virtual memory pages)
+
++ => Advantages of paging method (over segmentation)
+  1. Flexibility => the system can support the abstraction of an address space (regardless of how the process uses its virtual address space)
+  2. Simplicity => now, you don't have to do any splitting of space, or placing segments in certain locations, you can just look for available pages, or perhaps swap out old
+     pages, for new ones
+
+Per-Process Page Table:
+The OS will keep a page table for each process that keeps track of where each virtual page of its address space is in physical memory (or secondary storage). The page table
+contains the address translations of the process' virtual addresses to that of the physical addresses (i.e. VP0 => Physical Frame 3). 
+
+Address Translation:
+Each virtual address can be split into two components:
+1. Virtual Page Number (VPN)
+2. Offset within the page
+Ex: 64-byte address space (i.e. 6 bits to represent), and pages are 16 bytes. As the page sizes are 16 bytes, then there will be 4 pages (i.e. 2 bits to represent this). Thus,
+    there only needs to be 2 bits to represent the VPN, and the other 4 bits will represent the offset
+Ex: Virtual address 21 => 01 0101 => "The 5th byte of virtual page 1" => Thus the final physical address is 111 0101 (in the example, VP1 maps to PP7)
+The VPN serves as an offset into the page table, and thus we can find the Physical Frame Number (PFN) [or Physical Page Number (PPN)]
+Note: The offset of the virtual address is the same as the offset for the physical address
+
+Where are page tables stored?:
+Page tables are really large as they must hold all of the Page Table Entries (PTEs) for each address translation. The page tables being so large, are not stored on the MMU, but 
+are stored in memory somewhere (and potentially even on disk).
+
+What's in the Page Table?:
+Page table => data structure used to map virtual addresses (VPNs) to physical addresses (PFNs). Simplest data structure to use is a linear page table, which is just an array. The
+OS indexes the Page Table using the VPN, and looks up the PTE at the index, and then finds the desired PFN. Each PTE consists of a number of different bits, in addition to the
+PFN:
++ => Valid bit => indicates whether the particular translation is valid. Memory that is invalid (is unused space in between the stack and heap). If a process tries to generate
+     a virtual address to an invalid (out-of-bounds) location, then the process will generate a trap to the OS, which will likely terminate the process. The valid bit simply
+     markes all of the unused pages in the address space as invalid. 
++ => Protection bits => indicate whether the page is read, write, or executable. If accessed incorrectly (i.e. write to read-only page), a trap will be generated.
++ => Present bit => indiciates whether the page is present in physical memory (or swapped out perhaps on disk)
++ => Dirty bit => indicates whether a page has been modified since it was brought into memory. This is important because it tries to reduce the number of stores that have to be
+     made to disk (as it is expensive). So, a technique is to defer the copying of the page to disk, until a bunch are ready (to do the write at the same time).
++ => Reference bit (accessed bit) => used to track whether a page has been accessed. Useful in determining which pages are popular (used for page replacement policies)
++ => Mode bit => if the page is user/supervisor mode
+
+Process of Paging:
+1. To fetch desired data, the system must translate the virtual address to the physical addrss
+2. System must fetch the proper page table entry from the process' page table
+3. Perform the address translation
+4. Concatenate the recently found PFN with the offset
+5. Load the data from physical memory
+To find the page table, there must be a Page-Table Base Register (PTBR) => that contains the physical address of the start of the process' page table.
+
+Idea of Paging:
++ => Segments are implemented as a set of virtual pages. Internal fragmentation would only average 1/2 a page (half of the last one). As the pages are of a fixed size. External
+     fragmentation wouldn't exist (as pages are never carved/splintered), they are all the same fixed size. 
+
+- Translation Lookaside Buffers (TLBs):
+Using paging can lead to additional overheads, as an addition memory lookup for each virtual address generated by the program (to the page table) to find the physical address. To 
+deal with this issue (speed up address translation), a Translation-Lookaside Buffer (TLB) was added to the MMU, which is just a hardware cache that stores popular virtual-to-
+physical address translations. Upon each virtual memory reference, the OS first checks the TLB to see if the translation is there (if so, fast translation), if not, then TLB miss,
+and the hardware goes the Page Table (containing all translations). 
+
+TLB Basic Algorithm:
+Idea => When a virtual address is generated, extract the VPN. With the VPN, look in the TLB to see if has the address translation. If it does, then TLB hit, and the proper PFN 
+     	can be easily extracted, and concatenated to the offset, to form the pysical address. If the VPN is not in the TLB, TLB miss, and now the system must go to the page table
+	fo find the translation. 
+Like with any cache, the TLB relies on spatial and temporal locality to be successful.
+
+TLB Miss:
+When a TLB miss occurs => the hardware raises an exception, which pauses the current executing program, raises the privilege level to supervisor mode, and jumps to the trap 
+handler. The TLB will be updated, and the instruction will be retried.
+
+TLB Contents:
+Usually 32, 64, or 128 entries (want it to be small, as smaller caches are faster). It is also fully associative => The hardware will search the entire TLB for the desired entry.
+A TLB entry might contain the VPN, the PFN, and the other bits (i.e. valid bit, protection bits, address-space identifier, and a dirty bit perhaps).
+
+TLB valid bit vs. Page Table valid bit:
++ => TLB valid bit => says that there is a valid translation available in the TLB
++ => Page Table valid bit => says whether or not a page has been allocated yet (if virtual address is to an invalid page, then will be a trap to the OS)
+
+TLB Issue: Context Switches:
+When a current process is running, it assumes that the TLB contains valid translations for it (and not other processes). Thus, when a context switch occurs, the system must ensure
+that the TLB entries from the previous process aren't used for the new process (as they are invalid). 
++ => Approaches:
+  + => Flush => when a context switch occurs, simply flush the TLB (i.e. set all valid bits to 0), thus the new process will not access the old address translations.
+  + => Address Space Identifier (ASID) => The idea here is that there are a designated set of bits for each entry of the TLB that designate what process the translation corresponds
+       to. Thus, the TLB can be shared between multiple processes on context switches, and no invalid addresses would ensue, as it would look at the ASID each time to make sure
+       that the translation corresponds to the correct process. When using this approach, there needs to be an additional ASID register, so that the hardware knows which process
+       is currently being run, in order to perform the translations. 
+
+- Replacement Policies:
+Cache replacement (for the TLB) => What entry in the TLB should be replaced, when a new entry is being placed in the TLB. The goal is to reduce to number of TLB misses, while 
+increasing the number of TLB hits. Thus, a good replacement policy must be chosen to make such a thing possible. 
++ => Approaches:
+  + => Least-recently-used (LRU) => The idea is to take advantage of locality. And thus, if an entry was used farthest in the past, then it is a good candidate for replacement.
+  + => Least-frequently-used (LFU) => Similar to LRU, in that it tries to exploit locality, and basically keeps a count of how many times an entry was used, and evicts the least
+       used one
+  + => Random => evicts entries at random. It is a simple approach, that works well in some cases (but is a trash option to choose).
+
+- Spatial Locality: 
+Spatial locality => the idea that a program that uses a variable at a given location, is likely to use the same variable or variables in a close proximity in the future. 
+Ex: Array elements
+
+- Temporal Locality:
+Temporal locality => the idea that if a piece of data was referenced, that it will likely to be referenced again in the near future. 
+Ex: Variables in a loop
+
+- Swapping:
+Why we swap:
+We want to make the best use of limited amount of physical memory. The process can only execute if it is in primary memory (and not on disk). But, we can't keep all of the
+processes in memory all of the time. So, if a process isn't ready (i.e. it is blocked), then we can swap it out to disk, and make room for processes that are ready. This improves
+the utilization of the CPU, as we want to avoid having the CPU being idle, so have as many ready processes as possible. 
+
+Pure swapping:
+Each segment is contiguous. Pure swapping involves swapping entire segments of a process in and out of memory. Swapping takes up a lot of time (especially swapping out/in entire
+data (and text) segments. And pure swapping wastes a ton of memory (processes don't usually need the entire segment). And, with segmentation, comes external fragmentation due
+to the segments being of variable size, and eventually there won't be large enough chunks of memory to service a process' address space segments. Thus, instead of segmentation,
+paging is used (fixed-sized page frames in physical memory). Thus, this reduces fragmentation, and then we need to utilize swapping, so as to make the best use of the limited
+physical memory. 
+
+Swapping is wasteful:
+Processes don't use all its pages all of the time, and keeping all the pages in memory wastes space. Swapping them all in and out wastes time (long transfers to disk). Thus, 
+different techniques of swapping need to take place (i.e. loading pages on demand). Loading pages on demand => Entire process' or even segments of the code, data, or stack
+don't need to all be in memory to run. Only start each process with a subset of its pages, and then load additional pages as the program demands them. Thus, it defers the swapping
+in and out of pages, and preserves some memory.
+
+Swap Space:
+Swap space => reserved space on disk where pages are swapped in/out to/from. The OS will need to remember the disk address of a given page. Swap space allows the system to
+appear larger than it actually is (by having process' pages and perhaps whole process' on disk, and not in primary memory). 
+
+Present Bit: 
+Memory reference sequence => Process generates virtual memory reference => hardware extracts the VPN from the virtual address => checks the TLB to see if TLB hit (if hit, then
+extract PFN from TLB, and formed the physical address) => if TLB miss, then go the Page Table using the PTBR (use VPN as offset into the table) to find the PTE (if page is valid,
+i.e. the page is allocated, and also is present in physical memory, then extract PFN, and put it in TLB, and retry the instruction) (if page is not valid, then issue segfault) 
+(if page is valid, but not present in physical memory, then it must be on disk somewhere, so generate a page fault, and proceed accordingly) => if page fault, then OS invokes
+the page-fault handler, which services the page fault (i.e. goes to disk and gets the memory, then sets the present bit to 1, then puts it in the TLB perhaps, and retries the
+instruction). 
+
+The Page Fault:
+With TLB misses, there are two types of systems:
+1. Hardware-managed TLBs => hardware looks in the page table to find the desired translation
+2. Software-managed TLBs => the OS does the job
+No matter, which form of TLB is used, when a page fault occurs, the OS deals with the problem. 
++ => Process of page fault => Page isn't present in memory (i.e swapped to disk) => OS consults the Page Table (i.e. the bits of the PTE to find the disk address) => with the
+     disk address, the OS issues a request to disk to fetch the page on disk => the disk I/O completes, and the OS updates the Page Table to set present bit to 1, updates the PFN,
+     and retries the instruction => next attempt, generates another TLB miss, which then goes to the Page Table, to fetch the PFN, updates the TLB, and retries the instruction =>
+     the next try should be a TLB hit
+Note: While disk I/O is taking place, the process will move to the blocked state, and put another process to run
+
+Page Fault Handling:
++ => Initialize PTEs to not present
++ => CPU faults when invalid page is referenced
+     1. Trap to page fault handler
+     2. Determine which page, where it resides on disk
+     3. Find and allocate free page frame (may need to perform replacement policy)
+     4. Block process, schedule I/O to read page in
+     5. Update PTE (i.e. present bit, PFN)
+     6. Back up the process' program counter to retry the failed instruction
+     7. Unblock the process, return to user-mode
++ => While process is blocked, let other processes run
+
+Three cases of TLB miss:
+1. Page is not in TLB, but is both valid and present (as shown in PTE), so grab PFN, and put in TLB, and retry instruction
+2. Page is valid (i.e. allocated), but is not present in physical memory, so generate a page fault, which will do disk I/O to grab the page and put it in physical memory, then
+   it will update the PTE (i.e. present bit, PFN), and then it will retry instruction, which would be another TLB miss, which will grab PFN and put in TLB, and retry instruction
+3. Page is invalid (i.e. not allocated for the process), in which case a segfault occurred, and a trap is issued, so the trap handler takes care of this process
+
+- Demand Paging:
+The idea is that there is not enough physical memory to have all process' segments be in memory all at once. In addition, there is not enough room (nor will processes usually use
+all of their segments) in physical memory to have all of a process be in memory. So, only load in a subset of a process' pages at its run-time, and only on demand by the process
+do you start to swap in pages into memory. Demand paging (swapping) allows for processes to be larger than physical memory, and allows for process to have sparse, large address
+spaces. 
+
+- Minimizing Number of page faults:
+Two ways:
+1. Keep the "right" pages in memory (replacement policies)
+2. Give a process more pages of memory (process' working set)
+
+- Belady's Optimal Algorithm:
++ => Which page to replace? => The one we won't need for the longest time
++ => Why this page? => Delays next page fault as long as possible. Minimum number of page faults per unit time. 
++ => How can we predict the future? => You can't, but it can be used to compare other algorithms against it. 
+
+- What if Memory is Full? (Page Replacement Policy):
+If the process needs to page in a page from the swap space, and the physical memory is all full, then another page needs to be convicted, and moved to the swap space (replacement
+policy). The OS usually keeps a high watermark (HW) and low watermark (LW) values to decide when to start evicting some pages from memory to disk. If the number of free pages
+gets lower than the LW, then begin replacement policy, in which the backround thread (swap/page daemon) evicts pages, until HW pages are available. 
+
+Times of Misses:
+1. Compulsory misses => Also known as a cold miss, when the cache is empty, and obviously wouldn't contain the memory
+2. Capacity misses => The cache is full, and has to do some eviction
+3. Conflict misses => Thrashing, where we keep taking out an item that is to be referenced (will get to this later)
+
+Types of Policies:
++ => FIFO => Pages are simply placed in a queue, and the replacement will evict the first one in
+     + => Pros => Simple to implement
+     + => Cons => Can't understand the importance of pages, so it won't make use of the locality
++ => Random => The replacement of pages is completely random
+     + => Pros => Simple to implement, and in some cases effective, when there are N spots in the cache, but we have N + 1 items
+     + => Cons => Like FIFO, it doesn't take advantage of locality as eviction is random
++ => Least recently used (LRU) => to improve the guess about the future, look to the past. The idea is that you evict a page that was used farthest in the past. Thus, this
+     policy tries to make use of locality, as if a page is referenced often, then it would likely be referenced recently. 
++ => Least frequently used (LFU) => Also tries to look at the past to improve eviction. Idea is to evict a page that isn't used as often as other pages. 
+Note: when there is no locality in the workload, then LRU, FIFO, and Random all perform the same
+Note: when the cache is large enough to hold the entire workload, the replacement policy also doesn't matter
+
+80-20 Workload:
+The workload exhibits locality => 80% of the references are made to 20% of the pages (the hot pages). LRU performs well here, as it will likely hold onto the hot pages. 
+
+Looping Sequential Workload:
+This workload refers to 50 pages in sequence (starting at 0, then 1, then, ..., then 49). LRU and FIFO perform poorly here because they kick out older pages, but due to the looping
+nature of the workload, they will access the older pages sooner than the recently used pages. Now, random performs better as it randomly evicts. If the cache size were anywhere
+from 1 to 49, LRU and FIFO would still get a 0% hit rate (weird corner-case behavior bruh). 
+
+- True LRU is hard to implement:
+To implement it perfectly, we would need to update some data structure for each page (when accessing it) to show that it was recently accessed. This can be achieved in the form
+of a time field (i.e. when a page is accessed, the time field is set to the current time) (performed by the hardware). Then, when replacing a page, the OS scans all time fields
+of all the pages, and evicts the least recently used page. 
++ => Cons => This process takes up a ton of time (especially if there are a ton of pages)
+Thus, despite LRU being our best policy for page replacement (in an intuititive sense), it is unrealistic to implement it in its true form. Must approximate it...
+
+- Approximating LRU:
+Idea => use of a reference bit (use bit), in which whenever a page is referenced (i.e. read/written), the reference bit is set to 1. With the use of a clock algorithm, and by
+arranging the pages of the system in a circular list, LRU can be approximated. The clock hand points to some particuar page to begin with (doesn't matter which). When a replacement
+must be done, the OS checks if the currently-pointed to page has its reference bit set to 1. If 1, then this page was recently used, so set the reference bit to 0, and move
+on to the next page. If 0, then this page wasn't recently used, so evict it, put new page in, and set reference bit to 1. In the worst case, you go through all pages, and set all 
+reference bits to 0. 
+Pros => Doesn't need to scan the entire page table (usually. unless all pages have reference bit set to 1). 
+
+Use of the clock => so the at each clock position, you load a page into a given frame, and set the reference bit to 1. Now, when you get to a point where replacement needs to take
+place, you look at the clock position (clock hand). And check the reference bit. If 1, then set to 0, and then move to next clock position. If 0, then replace this frame, and set
+reference bit to 1. Where we start with the clock position is random (doesn't matter). 
+
+- Working Sets - per process LRU:
+Global LRU => looking at all pages in the system. However, it would be better to have per process LRU, where each process is given it's own page pool. In addition, having a fixed
+number of pages per process is a bad idea (as different processes exhibit different locality). So, the number of pages that a process needs is changed with time. Thus, we want
+dynamic working sets (i.e. the number of pages, and which pages a process needs changes with time). Global LRU and Round-Robin scheduling don't work well together. Single processes
+exhibit temporal and spatial locality. However, with round-robin scheduling, multiple processes are given the chance to run for a brief time; and therefore, same pages are less
+likely to be referenced. Thus, LRU would perform poorly in this case. To combat this, give each process a set of pages (its working set). 
+
+- Thrashing:
+Thrashing => the concept that there is not enough memory to efficiently run all of the ready processes. Thus, there will be more page faults. For example, if you have 25 ready
+proecsses, but only have enough memory for 15, then 10 should be swapped out. If you keep all 25 in, then there will likely be a higher number of page faults. 
+
+- Working set size:
++ => If we increase the number of page frames, then it makes little difference in the performance
++ => If we reduce the number of page frames for a process, then the performance suffers noticeable (i.e. more page faults). 
+
+- How large is a working set:
++ => If a process experiences many page faults => then its working set is larger than the memory available to service it
++ => If a process experiences few page faults => then it may have too much memory allocated to it
+Idea: If we can allocate the necessary amount of memory for a process, then it will minimize the number of page faults (overhead), and maximize throughput (efficiency).
+
+- Implementing working sets:
+The idea is similar to that of Clock LRU. 
+Idea:
++ => Each page frame is associated with an owning process
++ => Each process has an accumulated CPU time
++ => Each page frame will have a last referenced time, value, taken from the accumulated CPU timer of its owning process
++ => We maintain a target age parameter => which is keep in memory goal for all pages
+Key elements:
++ => Age decisions are not made on the clock time, but the accumulated CPU time in the owning process => Pages only age when the owner runs without referencing them
++ => If we find a page referenced since the last scan, we assume it was just referenced
++ => If a page is younger than the target age, we don't need to replace it
++ => If a page is older than the target age, we evict it, and give it to a new (needy) process
+Also:
++ => If there are no pages older than the target age, then we may have too many processes to fit into memory (reduce number of processes in memory)
+
+- Page stealing (dynamic equilibrium):
+Page stealing => another process that needs another page steals it from a process that doesn't need it as much
++ => Processes referencing more pages more often, will accumulate larger working sets
++ => Process referencing fewer pages less often will reduce their working set size
+
+- Working Set Clock Algorithm:
+Each page is associated with an owning process. They still have a reference bit, but now there is time involved. Each page has a last referenced time associated with it, and each
+process has an accumulated time. Pages that have been referenced least recently (per their time vs. the accumulated time) will likely be evicted. In addition, there is a target 
+factor (i.e everyone needs 15 ms worth of pages). If you have 100 ms worth of pages, I will take some pages. If you have 5 ms, then I will give you some (page stealing). 
+
+For example, assume that there are 3 processes, and they each have a certain number of pages associated with them. Each page has a last referenced time associated with it, and each
+process has an accumulated time. In addition, each page has a reference bit. Now, there is a target time factor (in this case 15 ms). If when replacing pages, a page has a 
+time that is larger than the target time, then it will be evicted (i.e. Process A has 75 ms accumulated time, and page 4 has 50 ms since last reference. Well, then it has been
+25 ms since the page was referenced, so it is larger than the target time factor, so replace this page. However, if the page had its reference bit set to 1, it is spared). 
+
+With this algorithm, processes can steal pages from themselves, or can steal from other processes. Upgrades => There are two checks now for eviction (1. reference bit, 2. last
+reference time). Adaptively changes the working set size (via dynamic equilibrium), and letting time run its course. Page stealing takes place to fix working set size. 
+
+- Thrashing prevention:
+Thrashing => needed pages replace one another continuously. As the working set size is larger than available memory, so more page faults would occur.
+
+- Clean and Dirty Pages:
+Consider a page that was recently paged in from disk. Well, now there are two copies: one on disk and one on memory. If the copy in physical memory hasn't been modified, then
+it is clean, and there is still a valid copy on disk. So, we can replace this page (if we need to) without having to write it back to disk. If however the physical memory copy
+was modified, then it is now a dirty page, and the one on disk is no longer up to date. We need to write it out to disk again, so that it becomes clean. If we are replacing this
+page, then we also have to write it out to disk. 
+
+There are two methods to deal with clean/dirty pages:
+1. Preemptive Page Laundering => ongoing background write-out of dirty pages (only if page isn't currently running)
+2. Just do the write out to disk, when the page is modified (or can store a bunch of pages to write out to disk in a cluster)
+
+- Copy on write:
+This is the process that is used with fork() to reduce the amount of times that we have to copy pages. So, when we fork a parent, the child is given access to all pages of the 
+parent (i.e. the code segment, which is shared read-only, but also the data and stack which are per-process private). The idea here, is that we assume that the child won't update
+most pages, but when it does, then you have a write-page fault, and at this point, you make a copy of the page, and give it to the child. Thus, you try to avoid making copies, 
+deferring this operation (as it is expensive), until is necessary. 
+
+- Paging and shared segments:
+With shared pages, then we can't really use the working set model. So, perhaps Global LRU is the move here. 
+
+- Scatter/Gather I/O:
+The user buffer of a process may span multple pages in physical memory (not contiguous). Thus, when a process in its virtual address space does a read (with this large buffer), the
+OS makes use of a DMA transfer that "scatters" => it reads from the device to multiple pages. The opposite is when the process does a write (with the large buffer), in which it
+writes from multiple pages to the device by doing a "gather" => where a DMA stream gathers all of the pages in physical memory that are required, and then writes it all in one
+data stream to the disk. 
+
+===============================================================================================================================================================================
+Topic 7: Threads, Races, and Critical Sections:
+
+- Inter-Process Communication (IPC):
+IPC => The exchange of data between processes. The connection establishment and the data exchange is mediated by the OS. This is done to ensure the authentication of the IPC, but
+also to protect processes from one another, and ensure the integrity of the data.
+
+- IPC Goals:
++ => Simplicity => Want to make it easy for the processes to communicate with one another (even if it is hard to implement)
++ => Convenience => The OS doesn't want some kind of work-around for processes to communicate. The process should be easy to use.
++ => Efficiency => The communication should be efficient in the sense that it shouldn't incur too much overhead, and the throughput and response time of the communication should
+     		   be good
++ => Security/Privacy => We want to make sure that there is a secure connection between the processes (no spying), and that each process is protected and private from the other,
+     		      	 we don't want a process to access another process' state.
+
+- Typical IPC Ops:
++ => Channel creation and destruction
++ => Write/send/put => insert data into the channel
++ => Read/receive/get => Extract data from the channel
++ => Channel content query => How much data is currently in the channel
+
+- IPC: messages vs streams:
+Streams => A continuous stream of bytes. You can read or write few or many bytes at one time. But the stream may contain app-specific record delimiters.
+Messages => Sequence of distinct messages. Each message has its own length. Messages are typically read/written as a unit. Delivery is all-or-nothing (not byte by byte)
+
+- IPC: Flow control:
+If there is a fast sender, and a non-responsive reader. Or a fast reader, and slow sender, there should be a way to do some control on the buffer space:
+1. Back-pressure => block the sender or refuse messages (until reader has caught up)
+2. Receiver side => Drop connection or messages
+These are mechanisms to report flush to sender
+
+- IPC: reliability and robustness:
++ => Reliable delivery (e.g. TCP vs. UDP): networks can lose requests and responses. A sent message may not be processed
+
+Types of IPC:
++ => Simplicity: Pipelines => Data is a simple byte stream, buffered in the OS. No security is required as it is all under the control of a single user.
++ => Generality: sockets => Connections between addresses/ports. Many data options (TCP: reliable, or UDP: best effort). And there are complex flow control and error handling.
+     Should we retransmit dropped/lost packets? What happens when one side times out?. In addition, security needs to be put in place
++ => Half way: Mail boxes, named pipes => client/server rendezvous point. Client and server must be on the same system
++ => Ludicrous speed: shared memory => Shared read/write memory segments
+
+- When to use threads vs. processes:
++ => Reasons to use processes: computations run independent programs, there is minimal interaction between the parallel computations, desire to keep them separate for privacy
++ => Reasons to use threads: frequent creation and destruction, parallel computations share same resources, parallel computations frequently interact with one-another, computations
+     are running code from the same program
+
+- Concurrency:
+Multi-threaded program => program that has more than one point of execution (i.e. multiple PCs)
+Thread => each thread is like a separate process, except they all share the same address space and thus can access the same data
+Thus, if there are multiple threads running on a single processor, a context switch must take place. Like with processes, when switching to a new thread, we need to save the 
+thread state of the old thread (to a thread control block (TCB)), and restore the state of the new thread. However, as they are threads all executing under a single process,
+the context switch is more light weight, as we don't need to switch the address space, so this makes the amount of stuff to save/restore less than that for a process. Unlike with
+processes (only one stack), as there can be multiple threads, and the threads each have their own stacks, there can be multiple thread-stacks in a single address space. When doing
+stack stuff (i.e. local variables, routine calls), this stuff is stored in thread-local storage to the relevant stack. 
+
+Brief History of Threads:
++ => Process are very expensive (to create and dispatch). Different processes are very distinct (i.e. they can't share the same address space, and they can't share resources)
+Not all programs require strong separation, and in fact parallel threads may which to share resources or act on a shared computation. As threads are all part of a single program,
+they are all trusted, and thus no security or extra privacy mechanisms need to be put in place.
+
+What is a thread?:
+Thread => a unit of execution/scheduling. Each thread has its own PC, registers, and stack. Multiple threads can run in a single process, and they all share the same code and
+data space, and have access to the same resources. This makes it cheaper to create and run. 
+Note: sharing the CPU between multiple processes: => user-level threads (w/ voluntary yielding), and scheduled system threads (w/ preemption)
+
+When to use processes vs. threads?:
+Processes:
++ => Running multiple distinct programs
++ => Creation and destruction of processes is rare (as these are expensive)
++ => There are limited or few interactions between processes and shared resources
++ => We want to inact privacy/security between processes (don't want them interfering with each other, and their computations)
+Threads:
++ => Parallel activities in a single program
++ => Creation and destruction is frequent
++ => They need to share resources
++ => They are constantly communicating with one another (i.e. messages/signals)
++ => Privacy/protection isn't important, as they are under a single program, and working on the same computation perhaps
+Note: to exploit parallelism and avoid blocking I/O, you could also use processes. However, threads run in the same address space, and thus, it is much easier to share resources.
+- Thread state:
+Each thread has its own registers, PS, and PC. In addition, each thread must have its own stack area. Unlike with a process, where there is only one stack per a process' address
+space, if a program has multiple threads, then it will also have multiple stacks (as threads have their own stacks). Thus, there must be a max size of the stack specified when
+the thread is created. 
+
+- Kernel vs. User-mode Threads:
+Does the process or the OS schedule the threads?
+When threads were first added to Linux, they were implemented entirely in a user-mode library, with no OS assistance. They would change between threads by using yield() and sleep()
+operations. Problems with user threads => system call blocks, and can't exploit multiple processors. If using non-preemptive scheduling, then user-mode threads are more efficient
+than doing context switches through the OS. They are light weight threads. If using preemptive scheduling, then user-mode threads with alarms and signals is too costly. 
+
+Advantages of Kernel threads:
++ => Multiple threads can truly run in parallel (unlike with user-mode threads, where the OS isn't aware that there are multiple threads, and thus if one thread blocks to do some
+     I/O perhaps, then the OS isn't aware that other threads can execute, so it blocks the whole process)
++ => One thread blocking doesn't block others
++ => OS can enforce priorities and preemption (as it knows all the threads that exist, so it can schedule certain threads at certain times)
++ => OS can provide atomic sleep/wakeup/signals
+Advantages of User-mode threads:
++ => Fewer system calls
++ => Faster context switches
++ => They are made by the user, so the thread can be tailored for specific application needs
+
+- Threads are non-deterministic:
+As threads are instances of execution/scheduling, they can be scheduled at different times by the OS. Because of this, one thread executing could be preempted, and let another 
+thread run. This could be a problem if a thread was in a critical section (i.e. operating on a shared resource). This creates a new problem known as non-determinism. When working
+with processes, you knew that the output was going to be deterministic => you knew that process A was going to do this, and then the next process, and the output should be what
+is expected. However, when using threads the output is non-deterministic => if the two execution streams aren't synchronizd, then the results depend on the order that the
+threads execute. This means that there could be multiple outputs for the same operation. When using sequential program execution, the instructions execute one by one, and the
+execution order is deterministic. When using cooperating parallel programs, then if the streams of execution aren't in sync, then the results can't be predicted (it is determined
+by scheduling). This non-determinism demonstrates a race condition => the results depend on the timing execution of the code. 
+
+Non-determinism => program consists of one or more race conditions, and there could be multiple outputs for different runs. It depends on which thread executes first
+
+Race condition => if multiple threads of execution enter the critical section at roughly the same time, then both might attempt to update a shared resource (altering the outcome)
+
+Critical section => piece of code that accesses a shared resource
+
+Mutual exclusion => guarantees that only one thread is executing within a critical section at one time, and all other threads are blocked
+
+- Atomicity:
+The problem with race conditions, critical sections, and non-determinism could be solved with more powerful instructions. These instructions are known as atomic instructions =>
+which means that the instruction sequence can't be interrupted, and it will execute all parts of the sequence. It executes as a single unit. For example, if there are three
+instructions (i.e. load, add, store), we need to execute these instructions all at once, as it is a critical section (if using threads). If you do one, and then are interrupted,
+then another thread can come in and change the state, and then mess everything up. So, it would be nice to execute the sequence of three instructions atomically (all at once). 
+
+Two Types of atomicity:
+1. Before and after (mutual exclusion) => A enters critical section before B, B waits for A to finish, then enters critical section
+2. All or none (atomic transactions) => an update that starts will complete w/o interruption. Can't have preempted updates, we want them to execute atomically.
+
+- Synchronization: 
+To be able to execute instructions "atomically", we need some synchronization mechanisms that will allow for this to occur (i.e. using locks, condition variables, semaphores). 
+When threads are working concurrently on shared resources, there is the need for synchronization to prevent multiple threads entering a critical section at the same time. 
+True parallelism is imponderable, but pseduo-parallelism should suffice (so identify and serialize key points of interaction). Two problems: critical section serialization (i.e.
+prevent race conditions, make mutual exclusion), and asynchronous completions (i.e. conditions, one thread waiting for another to complete before it can do it's thing).
+
+- Conditions (condition variables):
+There is another problem with threads (in addition to shared resources and critical sections), and it is when one thread must wait for another thread to complete its task before
+it can continue its. For example, when a process performs a disk I/O, it will go to sleep, and wants to be signaled that the condition it is waiting for has completed (i.e. the
+disk I/O is complete), and then be woken, so that it can continue with its execution. [sleeping/waking interaction]
+
+- Benefits of parallelism:
++ => Improved throughput => blocking of one activity doesn't stop others
++ => Improved modularity => separating complex activities into simpler pieces
++ => Improved robustness => the failure of one thread doesn't stop others
+
+- Achieving Mutual exclusion:
+This can be achieved by using locks to prevent multiple threads from entering a critical section at the same time.
+
+- Recognizing critical sections:
++ => Generally involves updates to object state
++ => Generally involves multi-step ops
++ => Correct operation requires mutual exclusion (otherwise, race condition, and indeterminate results)
+
+- Motivations for using threads:
++ => When creation and destruction is frequent
++ => When we want to share resources within a single program
++ => When we have a lot of communication between parallel computations
++ => Computations are running code from the same program (i.e. filling a large array with different values perhaps, and use of multiple threads to achieve the result faster)
+
+===============================================================================================================================================================================
+Topic 8: Mutual Exclusion and Asynchronous Completions:
+
+- Why we wait:
++ => Await completion of non-trivial operations (e.g. child process to be created)
++ => Await important events (e.g. notification from another process)
++ => Await to ensure correct ordering (e.g. B can't go before A, so A goes and then B)
+
+- Asynchronous Operations:
+Most of the procedure calls are synchronous => we call them, they do their job, and return, and the result is ready. However, many ops can't happen immediately, they are 
+asynchronous (e.g. waiting for a lock to be released, waiting for I/O to complete). When awaiting asynchronous events to complete, you use locks, in association, with condition
+variables to sleep (wait), and signal when condition is done
+
+- Approaches to waiting:
++ => Spinning ("Busy waiting") => works well if the event is independent, and it shouldn't take long to complete. It wastes CPU and memory, and could actually delay the event
+     from happening
++ => Yield and spin => allows other processes to use the CPU, but works poorly if there are multiple waiters
+
+- Mutual Exclusion Challenge:
+We can't prevent parallelism from occurring, nor can we prevent sharing of resources. But we can identify the risks, the critical sections, and enable some protections to ensure
+that no race conditions occur, and the mutual exclusion of the critical section is upheld (i.e. locks). 
+
+- Goals of locks (to provide mutual exclusion):
+1. Effectiveness/Correctness => ensures before-or-after atomicity (want to make sure that the mutual exclusion is upheld
+2. Fairness => Want to try to reduce (or remove) the possibility of starvation (un-bounded waiting times) for threads as they wait for locks. Don't want to create race conditions
+   for the lock, where a thread could lose everytime (this can be solved by having a waiting queue)
+3. Progress => No client should wait for an available resource, if it is ready, then the thread should go and get it. Want to make sure that progress is made, and that processes
+   don't wait forever, but are getting on with their execution. Want to try to avoid convoy formation, and deadlocking.
+4. Performance => Try to reduce the delays of waiting/getting the lock, want to make it as efficient as possible. If the system has only a single processor, then using a spin-lock
+   is incredibly inefficient to wait for an event from another process as the spinning is counter-productive and actually delays the execution of the process it is waiting for.
+
+- Approaches to mutual exclusion:
+1. Avoid sharing mutale resources => best choice obviously, but not always practical
+2. Interrupt disables => disabling the interrupts (to allow for atomic sequences to take place), but don't want to disable for too long, or could miss an important interrupt
+3. Spin locks => basically using a while loop, where a thread spins, while waiting for the condition/lock to be released, so that it can get it
+4. Atomic instructions => very powerful, but is difficult to implement. The idea that a set of instructions (on a critical section perhaps) are executed all at one time, without
+   	  	       	  being interrupted. In this way, the critical section has mutual exclusion, as it won't be preempted and another thread enters a race condition
+5. Mutexes => higher level idea
+
+Interrupt Disables Approach:
+When an interrupt happens, the CPU stops the executing program, an interrupt table is consulted to find the appropriate 1st level handler using the interrupt number. Then the 1st
+level handler savees the registers, calls the 2nd level handler, which services the interrupt, and then restores the registers, and returns the CPU back to the user mode to 
+execute. The user code has no clue that the interrupt occurred.
+
+Idea => temporarily block some or all of the interrupts to prevent a timer interrupt from stopping a thread in a critical section perhaps. This allows for the instruction sequence
+to be executed "atomically" without interruption, and thus can provide the mutual exclusion. However, disabling interrupts is dangerous as it could delay important operations, or
+make the system miss key problems or interrupts that can negatively impact the system. 
+
+Uses => can be used to prevent preemption of a process, and also to prevent driver reentrancy
+
+Evaluating interrupt disables:
++ => Effectiveness/correctness => ineffective against the use of multiple processors, and it is only usable by kernel mode code (as disable interrupts is a privileged op)
++ => Progress => potential for a deadlock
++ => Fairness => pretty good assuming that the interrupt disable is brief
++ => Performance => one instruction, so it is much cheaper than a system call, but long disables could negatively impact system performace
+
+Spin Lock Approach:
+Idea => use of a while loop, in which a thread loops until the lock is released, and obtained. It is usally done with atomic test-and-set ops. It gives the ability to prevent
+parallel execution (in a critical section) from occurring, and you just wait for a lock to be released. The dangers are that spinning is likely to delay the desired resource,
+and that you could be spinning infinitely perhaps.
+
+Makes use of the test-and-set (atomic exchange operation) that is implemented by the hardware. It returns the old value, while atomically setting the flag to the new value.
+Thus, if you call test-and-set (assume the lock is free), then you do test-and-set(flag, 1). It returns the old value of the flag which is 0, so the thread doesn't have to 
+wait in the while loop, and acquires the lock, and then simultaneously sets the flag to 1 to show that the lock is taken. If a thread calls test-and-set, and the lock is currently
+taken, then the thread simply waits in the while loop, and rechecks the condition until the lock is available (i.e. it spins on the lock). 
+
+Difference between test-and-set and compare-and-swap:
++ => test-and-set => returns the old value and modifies the contents of the memory loaction atomically
++ => compare-and-swap => compares the contents of the memory location to a given value, and "only if they are the same" does it modify the contents with a new value atomically
+If using a simple spin-lock, then compare-and-swap behaves identically to test-and-set. However, if using lock-free synchronization, compare-and-swap can be quite powerful
+
+Evaluating spin locks:
++ => Effectiveness/correctness => effective against preemption and multi-processor parallelism, but is ineffective against conflicting I/O access
++ => Progress => deadlock danger, and also convoy formation
++ => Fairness => possible unbounded wait times
++ => Performance => waiting is extremely expensive, and spinning takes up CPU cycles
+Spin locks can be incredibly inefficent if only using a single processor. For example, if there are two threads, and the first thread is preempted while in a critical section, then
+thread 2 will get to run, but all it does is spin, and spin, and spin, until a timer interrupt goes off, in which case, it goes back to the first thread. As can be seen, this
+spinning just wastes CPU cycles, and just delays the thread from getting what it wants. An approach to try to solve this wasting CPU cycles due to spinning is by yielding. Instead
+of spinning, just yield the CPU back to the other thread, so that you don't burn a time-slice just spinning. However, even yielding doesn't solve the issue of burning CPU cycles,
+and also starvation. For example, if there are 100 threads, and thread 1 gets preempted in the critical section, then the other 99 threads will each get a shot at the CPU, and then
+eventually yield it. While it saves more CPU cycles than with spinning, it is still costly as the context switches provide overhead. In addition, a thread could be yielding forever
+(i.e. starvation) as other threads get in before it gets the chance to.
+
+An approach to deal with spinning and yielding to reduce the burning of CPU cycles, and also to try to prevent starvation is the use of a wait queue, and a sleep/wait signal cycle.
+Instead of spinning or yielding, when a thread tries to acquire the lock that is already taken, it puts itself to sleep. When doing so, it adds itself to a wait queue, so that
+starvation is avoided, and eventually the thread will get its shot at the CPU. The thread first in the queue will be woken up, once the lock becomes available. This can be done
+via Solaris' park() and unpark(TID) functions to put a thread to sleep if it tries to get a taken lock, and wakes it when the lock becomes free. This can also be achieved by using
+the pthread_cond_wait() and pthread_cond_signal() functions I believe. A wakeup/waiting race could take place => where a thred is about to park, but right before it does so, it
+is preempted, and another thread releases the lock, now the thread will sleep forever (as the lock is free, but it is waiting for it to be free). This problem was solved by Solaris
+with the setpark() function, which indicates that a thread is about to park, in which case, if it is interrupted and another thread calls unpark, the subsequent park returns 
+immediately without sleeping (thus avoiding the wakeup/waiting race of infinite sleep). Linux uses the "futex" just like Solaris' parking with futex_wait() and futex_wake()
+
+Spinning and yielding approach:
+Yielding is a good thing => avoids burning cycles by busy-waiting, and gives other tasks a chance at the CPU. However, when doing spinning and yielding, then it is bad, as the 
+process to run next is random.
++ => Progress => potentially unbounded wait times
++ => Performance => each try is wasted cycles
+
+- Locks:
+Locks => used for providing mutual exclusion to a critical section
++ => int pthread_mutex_lock() and int pthread_mutex_unlock()
+When you have a critical section, then you need to instill some locks to prevent multiple threads from accessing the critical section at the same time, thus ensuring mutual 
+exclusion. 
+Idea => If no other threads are holding the lock, and a given thread wishes to enter the critical section, then it will call pthread_mutex_lock() to acquire the lock. Thus,
+there is only one lock, so it is the only thread that can access the critical section. If other threads call pthread_mutex_lock(), they will have to wait until the lock is released
+by the thread, which happens when the thread with the lock calls pthread_mutex_unlock() after it has finished in the critical section. 
+
+Initialization:
+All locks must be properly initialized. This can be done by 1. using a initializer macro (static), or 2. doing so dynamically by calling pthred_mutex_init(). 
+
+Checking error conditions:
+It is important that the locking and unlocking checks error conditions to make sure that everything went according to plan.
+
+Other Locks:
+int pthread_mutex_trylock() => returns failure if the lock is already held
+int pthread_mutex_timedlock() => returns after a certain timeout or if it acquired the lock
+Thus, these are other ways to acquire the lock, so as to try to avoid getting stuck waiting for a lock. 
+
+Granularity of locks:
+Coarse-grained lock => using a big lock any time a critical section is accessed
+Fine-grained lock => Protecting different data/data structures with different locks, which allows for more threads to be in locked code at once
+
+- Condition variables:
+Condition variables => are used when some kind of signaling/waking up takes place between threads, where one thread is waiting for another thread to do a condition, and thus goes
+to sleep to give up the CPU, and then the other thread will finish its condition, and signal to the sleeping thread that it is done, in which case, the thread sleeping will be
+woken up to continue executing
+
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) => puts the calling thread to sleep, and waits to be signaled by another thread
+int pthread_cond_signal(pthread_cond_t *cond) => used by the thread after it has completed its condition, and signals to the sleeping thread that it is done
+
+Initialization:
+Just like with a lock, the condition variable must be initialized as well, which can be done statically or dynamically. 
+
+Key Ideas:
++ => When signaling, the thread must make sure to be holding the lock. 
++ => The wait call takes a lock as the second parameter, while the signal call only takes a condition variable as a parameter. This is because the wait call, in addition to putting
+     the thread to sleep, also releases the lock so that the other thread can acquire the lock and signal it to wake up. However, before returning after being woken, the wait
+     function reacquires the lock, thus ensuring that it has the lock when it wakes up to continue its execution. 
+
+Important:
++ Note that the waiting thread re-checks the condition in a while loop, and not an if statement. This is done for a number of reasons, but for one, it combats a spurious wakeup, in
+which a thread is woken up, but before it can acquire the resource it was waiting for perhaps, another thread sneaks in and steals the resource. Thus the woken up thread was woken
+up for no reason, and it must re-check the condition, as it thinks something changed (because it was woken up), but it actually hasn't (because it was stolen).
++ Note also that the condition and lock variables should always be used, and not some simple flag that is set/cleared. The reason for this is because, it performs very poorly (i.e.
+spinning for a long time wastes CPU cycles), and also it is prone to error due to synchronization issues. 
+
+Potential Problems:
++ => Race conditions between sleep and wakeup => a thread could call wakeup before (or during) sleep. In this case, a thread is about to go to sleep, but then an interrupt happens
+     perhaps, and the other thread posts the condition (via signal()), and then the other thread calls wait(), in which it will be waiting/sleeping forever
++ => Spurious wakeups => when a thread is woken up, but the event isn't available (perhaps some other thread stole it). Perhaps multiple processes were woken up, and thus only one
+     of the processes will be able to get the resource, and the others will be left speechless. The check/sleep should be done in a while loop, so everytime you wake up, you check
+     the condition to ensure that you go back to sleep if it was a spurious wakeup. 
+
+Evaluating signal()/wait():
++ => Effectiveness/correctness => good (if used properly)
++ => Progress => good (if used properly)
++ => Fairness => who gets the resource is random, so not very fair
++ => Performance => good for single consumers, but if there are multiple consumers, then potential for spurious wakeups
+
+To solve the problems of starvation, fairness, can implement waiting lists:
++ => pthread_cond_wait() => at least one blocked thread, but pthread_cond_broadcast() => wakes up all blocked threads 
+But this is bad as multiple processes will wake up, and ultimately fail. A potential solution is to have a waiting queue, and thus, starvation is prevented, and the first position
+client in the queue, will wakeup and get the resource. 
+
+==============================================================================================================================================================================
+Topic 9: Higher Level Synchronization and Communication:
+
+- Lock-based Concurrent Data Structures:
+Data structures can be made thread-safe by adding locks to them to make them usable by threads
+
+Concurrent counters (traditional):
+Simply having a counter implementation, but then adding locks to it, so that it becomes thread-safe. Ideally, you want to see perfect scaling => having the time taken to 
+complete the task not being increased, despite having more threads working on the data
+
+Scalable Counters:
+Sloppy counter => there is a single logical counter via numerous "lcaol" counters (one per CPU core), and one global counter. In addition to the counters, there are also locks,
+one per local counter, and one for the global counter.
+
+Idea => Threads update their local counters without contention, thus updates are scalable. Periodically, the global counter is incremented by the local counter's value, and then
+the local counter gets reset to zero. 
+
+Concept => how often to make the local-to-global transfer is determined by a threshold => called "sloppiness". If S is small, then the counter is more non-scalable, but is more
+accurate. If S is bigger, then the counter is more scalable, but the value is less-precise. Thus, there is an accuracy/performance trade-off for sloppy counters. 
+
+Concurrent Linked Lists:
+Rearrange the code so that the lock and release only surround the actual critical section in the insert code. It doesn't scale very well, but if hand-over-hand locking is 
+implemented => instead of having a single lock for the entire list, add a lock per node of the list. Thus, it enables a higher degree of concurrency for list operations to take
+place. 
+
+Concurrent Queues:
+Concurrent Hash Tables:
+
+- Producer/Consumer (Bounded Buffer) Problem:
+Imagine one or more producer threads and one or more consumer threads. Producers generate data items and place them in a buffer; and consumers grab the items from the buffer
+and consume them. The bounded buffer is a shared resource, so synchronization must take place, or race conditions will arise. Locks are put around the buffer to make sure that if
+you are the producer (check to see if buffer is empty), so you can put stuff in the buffer, and if you are the consumer (check to see if the buffer is full), so you can take
+stuff from the buffer. The locks ensure the critical section prevent race conditions, and a wait() and signal() are used to set up the condition. 
+
+Broken Solution:
+Imagine a single producer and single consumer. The put() and get() routines have critical sections within them, so locks and condition variables are used. When the producer wants
+to fill the buffer, it waits for it to be empty. And the consumer does a similar process. Now, if there are multiple consumers => consumer 1 gets the lock, sees buffer is empty, 
+and then calls wait(). The producer gets the lock, sees the buffer is empty, and fills it, and signals the buffer is full. Consumer 1 moves from sleeping to ready, and the producer
+goes to sleep. Now, consumer 2 comes in and takes the variable in the buffer. Now consumer 1 runs, and re-acquires the lock, and returns, and calls get(), but the buffer is empty.
++ => Problem: we should have prevented consumer 1 from calling get() as consumer 2 already took the variable in the buffer. There is no guarantee that when a thread wakes up after
+     being signaled that the desired state will be the same.
+
+Better, but still broken solution:
+The first solution used an if statement to check the condition, but it should be a while loop. Thus after each wake up, the condition is rechecked to make sure everything is a go.
+Thus, if a spurious wakeup occurs, the thread doesn't just assume that it can go get the resource, but rechecks to make sure that another thread didn't come in and swoop the 
+resource. If it did, then go back to sleep. If it didn't, then do some work. 
++ => Problem: There is only one condition variable. Consider the one producer and two consumers again. Now, consumer 1 and 2 run first, check to see if buffer is full (it isn't), 
+     and call wait(), going to sleep. Now the producer gets in and fills the buffer, and then goes to sleep. Now, consumer 1 wakes up, rechecks the condition, and grabs the
+     resource. It signals on the condition, but which thread should it wake up? (i.e consumer 2 or producer). It clearly should wake the producer, but if it wakes consumer 2, 
+     which is possible, then there is a problem. Consumer 2 will wake up, recheck the condition, and go back to sleep. And now all threads are sleeping, and no one can wake the
+     producer (which should be putting something back in the buffer). Never should all threads be sleeping.
++ => Fix: Consumers should never wake other consumers, only producers, and vice versa.
+
+Single Producer/Consumer Solution:
+Idea => Use two condition variables: producers wait on the condition empty, and signals fill, while consumers wait on the condition fill, and signals empty. Now, consumers can
+     	never accidentally wake up other consumers
+
+Correct Producer/Consumer Solution:
+Changes to make it more general for more producers/consumers => Producers only sleep if all buffers are currently filled, and consumers only sleep if all buffers are empty
+
+- Covering conditions:
+Example: Thread 1 requests 100 bytes, thread 2 requests 10 bytes. They sleep on the condition. Thread 3 frees 50 bytes, but which thread does it signal. 
++ => Solution => simply call pthread_cond_broadcast() to wake up all waiting threads. This guarantees that any threads that should be woken are
++ => Downside => needlessly wakes up many other waiting threads that shouldn't yet be woken up (so wakeup, recheck condition, and go back to sleep => spurious wakeups)
+
+- Semaphores:
+To solve concurrency problems, both locks and condition variables are necessary. Dijkstra invented semaphores as a single primitive to deal with synchronization. Semaphores can
+be used as both locks and condition variables. 
+
+Semaphore => an object with an integer value that can be manipulated using sem_wait() (P()) and sem_post() (V()). Semaphores are more powerful than simple locks as they incorporate
+a waiting queue (reduce starvation), and they have a counter to know when to continue access.
+
+Semaphore Operations:
+Parts => integer counter, and a waiting queue
++ => P (wait) => decrement the counter, if count >= 0, then return. If counter < 0, then add process to the waiting queue
++ => V (post) => increment the counter, if count >= 0 & the queue is non-empty, then wake 1st process
+For example, say the counter is set to 1. And a thread calls P, so it decrements the counter to 0, and as the counter is positive, it enters the critical section. Thus, if another
+thread after it came along and called P, then the counter would be negative 1, and this thread would be put on the waiting queue. Now, the first thread finished up in the critical
+section, and then calls V, so it increments the counter to 0, and as the counter is now positive, and the queue is non-empty, it wakes up the second thread, which now enters the
+critical section.
++ => Note: The value of the semaphore, when negative, is equal to the number of waiting threads. Thus, if it is -99, then there are 99 threads waiting on the queue to enter the
+     critical section perhaps. 
+
+Initializing a semaphore:
+The semaphore must be initialized to a certain value (if it is to be used a lock or a condition variable). Call sem_init(&m, 0, X) to initialize where m is the sem_t variable (i.e.
+the semaphore variable created), 0 can be ignored, and X is the value to initialize the semaphore (i.e. the counter to).
+
+- Binary semaphore (locks) (for mutual exclusion):
+Semaphores can be used as locks => place sem_wait and sem_post around the critical section just like you would for locks. If it is being used as a binary semaphore, the initial
+value of the semaphore should be 1. The reason for this is because, if thread wants to access the critical section, decrement the counter to 0, counter is positive, so enter
+the critical section. Now second thread comes along, decrement counter to -1, and now it is negative, so place thread 2 on the waiting queue. Thus, this provides mutual exclusion
+as it only allows one thread in the critical section at once. Once the thread 1 completes, then call post(), which increments the counter to 0, and as counter is positive, it
+wakes threads 2, which enters the critical section. As locks only have two states (held and not held), when semaphores are used to provide mutual exclusion, they are known as
+binary semaphores. 
+
+- Semaphores as condition variables:
+Semaphores can also be used when a thread wants to halt its progress to wait for a condition to become true. Thus, the semaphore can be used as a condition variable. When using
+semaphores as condition variables, the initial value should be set to 0. For example, consider the case where a parent creates a child, but the parent wants to wait for the child
+to complete before it continues (the condition). So, the parent will call sem_wait() after creating the child, and in the child routine, it is supposed to call sem_post. Now 
+consider two cases:
+1. The parent creates the child, and the parent calls sem_wait before the child runs. In this case, it calls sem_wait, which decrements the counter to -1, and as the counter is
+   negative, the parent is put on the waiting queue, and waiting for the child. Now it goes to sleep, so the child runs, and then it does its thing, and calls sem_post, which
+   increments the counter to 0, and now counter is positive, and the queue is non-empty, so it wakes the process.
+2. The parent creates the child, but the child runs before sem_wait is called. In this case, the child does its thing, and then calls sem_post, which increments the counter to 1,
+   and counter is positive, but the queue is empty, so it returns, not waking up any threads/processes. Now, the parent gets to run, and does its thing, then calls sem_wait, which
+   decrements the counter to 0, the counter is positive, and then the parent does its thing.
+
+- Producer/Consumer (Bounded Buffer) Problem with Semaphores:
+
+First Attempt: 
+Using two semaphores: empty and full, to indicate when the buffer is empty or full. The producer waits for the buffer to be empty, so it can put stuff into the buffer, and the
+consumer waits for the buffer to be full, so it can grab the resource from the buffer. The semaphores are initialized with full being 0, and empty being 1. Assume the consumer 
+runs first, in which case it calls sem_wait, which decrements the counter, counter is negative, so it goes on the waiting queue for the full signal. Now the producer runs, and 
+it calls sem_wait on empty, which decrements the counter to 0, counter is positive, so the producer enters, and fills the buffer up. The producer then continues and calls 
+sem_post(&full) which increments the full counter to 0, and counter is positive and the queue is non-empty, so the consumer is woken up. If the producer continues to run, then
+it will loop around, and then it will get to sem_wait(&empty), which will decrement the counter to -1, counter is negative and go on the queue. If the consumer runs, then it will
+see that the buffer is full, and consume the resource. 
++ => Problem: there is the problem of a race condition, as no locks were used. 
+
+Solution:
+Thus, add semaphores as binary semaphores to guard the critical section to uphold the mutual exclusion. Basically, add a sem_wait(&mutex) and sem_post(&mutex) after the sem_wait
+for the condition variable and before the sem_post on the condition variable. Basically, it just surrounds the critical section (i.e. put() or get())
+
+- Reader-writer locks:
+This is the idea that different operations require different kinds of locks. For example, think of a linked list. There are operations that modify (write) to the list, and there
+are operations that merely lookup (read) from the list. Thus, if we used different kinds of locks, we can ensure that concurrent reads can take place, as long as we guarantee
+that no writes take place at the same time. Thus, if a thread wants to update the data structure, it should call the rwlock_acquire_writelock(), to acquire the write lock,
+and rwlock_release_writelock(), to release the write lock. Similarly, there is a read get and release function for read locks. Thus, once a reader has acquired a read lock, more
+readers can acquire read locks, but any thread wishing to write, will have to wait for all readers to finish. This does pose fairness problems, as the read threads may be 
+infinite, in which case the write threads would suffer from starvation. 
+
+- Limitations of semaphores:
+They are simple and have few features. It is easy to deadlock with sempahores, and one cannot check the lock without blocking. In addition, they don't support shared
+access for reader/writer locks. 
+
+- Object level locking:
+Mutexes protect code critical sections (i.e. brief durations) and all operating in a single address space. However, persistent objects are more difficult. Critical sections last
+much longer, and may not even run on the same computer. The solution is to lock objects, and not code. 
+
+- Whole File Locking:
+Using flock => you can provide shared lock (multiple allowed), exclusive lock (one at a time), and release the lock operations. The lock is associated with an open fd, and the lock
+is released when the fd is closed. Locking is advisory => doesn't prevent reads, writes
+
+- Advisory vs. Enforced Locking:
++ => Enforced locking => it is guaranteed to happen, whether the user wants it
++ => Advisory locking => users are expected to lock objects, but it gives users flexibility in what to lock and when. 
+
+Advisory Locking:
+Requires cooperation between the participating processes. Only works if both the processes are willing to cooperate. For example, consider two processes 1 and 2. 1 grabs a write
+lock and starts writing to a file. It is up to process 2, to acquire a lock, to ensure serialization. If it just opens the file, and starts writing, then this is not cool, and
+breaks advisory locking. 
+
+Enforced Locking:
+Doesn't require any cooperation from the processes. The OS checks every open, read, and write to a file, and will lock it accordingly. Less flexible, but more secure, if you don't
+want to trust user implementation.
+
+- Contention Reduction:
++ => Eliminate the critical section entirely
++ => Eliminate preemption during critical section (via interrupt disables)
++ => Reduce time spent in the critical section (i.e. reduce code in the critical section)
++ => Reduce frequency of critical section entry
+
+- Lock granularity:
++ => Coarse-grained => one lock for many objects. It is simpler to implement, and provides greater resource contention (which is bad)
++ => Fine-grained => one lock per object. Spreads activity over many locks, which reduces resource contention. However, it could incur more overhead, as there are more locks, so
+     there are more gets/releases. It is error prone, and it is harder to decide what lock to use when. Thus, coarse-grained locking is simpler to implement.
