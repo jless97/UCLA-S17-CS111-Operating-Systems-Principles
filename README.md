@@ -1,4 +1,4 @@
-# CS 111 - Operating Systems Principles, Spring 2017
+# CS 111 - Operating Systems Principles, Spring 2017 
 
 ## Course Objective
 * Provide all students with OS related concepts and exploitation skills that they (a) will all likely need and (b) are unlikely to get in other courses.
